@@ -1,0 +1,9 @@
+{
+  "Id": "RobTomb",
+  "DisplayName": "盗墓笔记",
+  "Author": "qweraaaaa",
+  "Version": "2.0.9",
+  "AssemblyName": "RobTomb.dll",
+  "EntryMethod": "RobTomb.Main.Load",
+  "HomePage":"https://ngabbs.com/read.php?tid=15777630"
+}

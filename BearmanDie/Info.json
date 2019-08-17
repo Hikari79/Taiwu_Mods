@@ -1,0 +1,8 @@
+﻿{
+  "Id": "BearmanDie",
+  "DisplayName": "熊人降伏修改器",
+  "Author": "qweraaaaa",
+  "Version": "1.0.2",
+  "AssemblyName": "BearmanDie.dll",
+  "EntryMethod": "BearmanDie.Main.Load"
+}

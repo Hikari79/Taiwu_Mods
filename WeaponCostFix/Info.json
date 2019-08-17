@@ -1,0 +1,8 @@
+{
+  "Id": "WeaponCostFix",
+  "DisplayName": "式机制调整",
+  "Author": "qweraaaaa",
+  "Version": "1.0.2",
+  "AssemblyName": "WeaponCostFix.dll",
+  "EntryMethod": "WeaponCostFix.Main.Load"
+}

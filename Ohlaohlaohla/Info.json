@@ -1,0 +1,8 @@
+﻿{
+  "Id": "Ohlaohlaohla",
+  "DisplayName": "欧拉欧拉欧拉",
+  "Author": "qweraaaaa",
+  "Version": "1.0.4",
+  "AssemblyName": "Ohlaohlaohla.dll",
+  "EntryMethod": "Ohlaohlaohla.Main.Load"
+}

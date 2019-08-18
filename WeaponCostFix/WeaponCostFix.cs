@@ -59,6 +59,7 @@ namespace WeaponCostFix
 
         static void OnGUI(UnityModManager.ModEntry modEntry)
         {
+            AutoUpdate.AutoUpdate.OnGUI(modEntry);
         }
 
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)

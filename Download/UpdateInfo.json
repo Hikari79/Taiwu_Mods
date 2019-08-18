@@ -8,5 +8,10 @@
         "modName": "WeaponCostFix",
         "latestVersion": "1.0.3",
         "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/WeaponCostFixV1.0.3.zip"
+    },
+    {
+        "modName": "BearmanDie",
+        "latestVersion": "1.0.3",
+        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/BearmanDieV1.0.3.zip"
     }
 ]

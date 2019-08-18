@@ -358,6 +358,8 @@ using System.Runtime.Versioning\;
 	set_property(TARGET ${moddir} PROPERTY VS_DOTNET_REFERENCE_DOTween "${DLLPACK_DIR}\\DOTween.dll")
 	set_property(TARGET ${moddir} PROPERTY VS_DOTNET_REFERENCE_UnityEngine.PhysicsModule "${DLLPACK_DIR}\\UnityEngine.PhysicsModule.dll")
 	set_property(TARGET ${moddir} PROPERTY VS_DOTNET_REFERENCE_UnityEngine.Physics2DModule "${DLLPACK_DIR}\\UnityEngine.Physics2DModule.dll")
+	set_property(TARGET ${moddir} PROPERTY VS_DOTNET_REFERENCE_UnityEngine.UnityWebRequestModule "${DLLPACK_DIR}\\UnityEngine.UnityWebRequestModule.dll")
+
 		
 
 	#设置项目引用

@@ -15,6 +15,7 @@ namespace WeaponCostFix
 
     public class Settings : UnityModManager.ModSettings
     {
+        public bool autoCheckUpdate;
         public override void Save(UnityModManager.ModEntry modEntry)
         {
             Save(this, modEntry);
@@ -47,7 +48,8 @@ namespace WeaponCostFix
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
-
+            if (settings.autoCheckUpdate)
+                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
             return true;
         }
 
@@ -59,7 +61,7 @@ namespace WeaponCostFix
 
         static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            AutoUpdate.AutoUpdate.OnGUI(modEntry);
+            AutoUpdate.AutoUpdate.OnGUI(modEntry,ref settings.autoCheckUpdate);
         }
 
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)

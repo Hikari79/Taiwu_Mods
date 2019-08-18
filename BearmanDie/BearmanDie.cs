@@ -13,6 +13,7 @@ namespace BearmanDie
 
     public class Settings : UnityModManager.ModSettings
     {
+        public bool autoCheckUpdate;
         public override void Save(UnityModManager.ModEntry modEntry)
         {
             Save(this, modEntry);
@@ -48,7 +49,8 @@ namespace BearmanDie
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
-
+            if (settings.autoCheckUpdate)
+                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
             return true;
         }
 
@@ -181,11 +183,11 @@ namespace BearmanDie
                 "DateFile.instance.GangActorLevelUp(人物ID,目标门派ID,目标门派地位)            改变某人门派及地位(1-9，1最高)\n" +
                 "...懒得写了，看需求再加\n");
 
-            AutoUpdate.AutoUpdate.OnGUI(modEntry);
+            AutoUpdate.AutoUpdate.OnGUI(modEntry, ref settings.autoCheckUpdate);
         }
 
 
-        
+
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)
         {
             settings.Save(modEntry);

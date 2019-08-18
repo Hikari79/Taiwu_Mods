@@ -21,14 +21,16 @@ namespace AutoUpdate
         private static string output = string.Empty;
         private static string checkUpdateUrl = "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/UpdateInfo.json";
         private static string downloadUrl = "";
+        private static UnityWebRequest www;
         public static Status status = Status.initial;
 
-        public static void OnGUI(UnityModManager.ModEntry modEntry)
+        public static void OnGUI(UnityModManager.ModEntry modEntry,ref bool autoCheckUpdate)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("更新设置:");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+            autoCheckUpdate = GUILayout.Toggle(autoCheckUpdate,"启动时自动检测更新");
             GUILayout.BeginHorizontal();
             if(GUILayout.Button("检查更新"))
             {
@@ -42,7 +44,7 @@ namespace AutoUpdate
                     output = "network error,请检查网络连接";
                     break;
                 case Status.checkUpdateing:
-                    output = "正在检测更新";
+                    output = $"正在检测更新,{www.downloadProgress*100}%已完成";
                     break;
                 case Status.error:
                     break;
@@ -56,7 +58,7 @@ namespace AutoUpdate
                     output = "当前已是最新版本";
                     break;
                 case Status.updating:
-                    output = "正在更新中";
+                    output = $"正在下载更新中,{www.downloadProgress*100}%已完成";
                     break;
                 case Status.updateSuccessfully:
                     output = "下载更新包成功，请关闭游戏用umm更新至最新版本";
@@ -84,12 +86,12 @@ namespace AutoUpdate
                 status = Status.networkError;
                 return;
             }
-            DateFile.instance.StartCoroutine(HasNewerVersion(modEntry, checkUpdateUrl));
+            SingletonObject.getInstance<YieldHelper>().StartYield(HasNewerVersion(modEntry, checkUpdateUrl));
         }
 
         private static IEnumerator HasNewerVersion(UnityModManager.ModEntry modEntry, string url)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
+            www = UnityWebRequest.Get(url);
             www.timeout = 100;
             yield return www.SendWebRequest();
             if (www.isNetworkError || www.isHttpError)
@@ -103,6 +105,7 @@ namespace AutoUpdate
                 {
                     downloadUrl = updateInfo.downLoadUrl;
                     status = Status.needUpdate;
+                    modEntry.NewestVersion = new Version(updateInfo.latestVersion);
                 }
                 else if(status!=Status.error)
                 {
@@ -148,7 +151,7 @@ namespace AutoUpdate
 
         public static IEnumerator Update(UnityModManager.ModEntry modEntry, string url)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
+            www = UnityWebRequest.Get(url);
             www.timeout = 100;
             status = Status.updating;
             yield return www.SendWebRequest();

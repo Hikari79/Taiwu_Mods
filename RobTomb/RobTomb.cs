@@ -21,6 +21,7 @@ namespace RobTomb
         public int search;
         public string amount;
         public bool noPoisonItem;
+        public bool autoCheckUpdate;
         public override void Save(UnityModManager.ModEntry modEntry)
         {
             Save(this, modEntry);
@@ -112,7 +113,8 @@ namespace RobTomb
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
-
+            if (settings.autoCheckUpdate)
+                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
             return true;
         }
 
@@ -149,7 +151,7 @@ namespace RobTomb
                 myStyle.fontSize = 22;
                 GUILayout.Label("<color=#E4504DFF>正常版\n设定集：\n1.基础成功率由你谋划所花时间与人物聪颖程度决定\n2.门派驻地内的墓受到保护，墓主人生前地位越高则保护越严密\n3.同格内墓主人的友人越多，越有可能盗墓失败\n4.坚毅能够提升进入疲惫状态前最大的盗墓次数，以及提供中毒和受伤的减免\n5.细腻越高越容易在墓中找到墓主人的物品和资源\n6.水性越高，越容易找到珍稀物品；福源越高，获得的珍稀物品的品级越高\n7.还有些隐藏设定就暂且不表了~</color>", myStyle);
             }
-            AutoUpdate.AutoUpdate.OnGUI(modEntry);
+            AutoUpdate.AutoUpdate.OnGUI(modEntry,ref settings.autoCheckUpdate);
         }
 
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)

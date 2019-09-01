@@ -10,6 +10,7 @@ using UnityEngine.UI;
 using System.Collections;
 using DG.Tweening;
 using UnityEngine.Networking;
+using AI;
 
 namespace RobTomb
 {
@@ -101,11 +102,8 @@ namespace RobTomb
         public static int baseGongId = 0;                                                                                        //当前地点归属，0：野外，1-15：各大门派，其余：村庄
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
-            var harmony = HarmonyInstance.Create(modEntry.Info.Id);
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             settings = Settings.Load<Settings>(modEntry);
-
             Logger = modEntry.Logger;
             string resdir = System.IO.Path.Combine(modEntry.Path, "Data");
             Logger.Log(" resdir :" + resdir);
@@ -115,6 +113,8 @@ namespace RobTomb
             modEntry.OnSaveGUI = OnSaveGUI;
             if (settings.autoCheckUpdate)
                 AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
+            var harmony = HarmonyInstance.Create(modEntry.Info.Id);
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
             return true;
         }
 
@@ -204,7 +204,7 @@ namespace RobTomb
 
         public static void Finish()
         {
-            switch (MassageWindow.instance.eventValue[1])
+            switch (MessageEventManager.Instance.EventValue[0])
             {
                 case 0: //默认结局
                     {
@@ -276,7 +276,7 @@ namespace RobTomb
                         Main.Logger.Log("成功失去资源");
                         DateFile.instance.SetActorMood(actorId, -10, 100, false);
                         DateFile.instance.SetActorFameList(actorId, 104, 1, 0);
-                        MassageWindow.instance.SetBadSocial(dieActorId, actorId, 401);
+                        MessageEventManager.Instance.SetBadSocial(dieActorId, actorId, 401);
                         if (text != "")
                             text += "\n";
                         text += "墓主人亲友与" + DateFile.instance.GetActorName(actorId) + "结下了仇怨......";
@@ -391,7 +391,7 @@ namespace RobTomb
             {
                 jilv = 45 + (actorSpeed - 300) / 20;
             }
-            if(MassageWindow.instance.eventValue[1]==1)
+            if(MessageEventManager.Instance.EventValue[1]==1)
             {
                 int battleEnemyId = int.Parse(DateFile.instance.presetGangGroupDateValue[enemyValueId][301].Split(new char[] { '|' })[0]);
                 jilv -= BattleVaule.instance.GetMoveSpeed(false, battleEnemyId, false, 0)/10;
@@ -402,7 +402,7 @@ namespace RobTomb
             }
             else
             {
-                if (MassageWindow.instance.eventValue[1] !=0)
+                if (MessageEventManager.Instance.EventValue[1] !=0)
                     EndToEvent(199802412);
                 else
                     EndToEvent(199801302);
@@ -414,7 +414,7 @@ namespace RobTomb
         /// </summary>
         public static void InputFix()
         {
-            MassageWindow.instance.inputTextField.contentType = InputField.ContentType.IntegerNumber;
+            ui_MessageWindow.Instance.inputTextField.contentType = InputField.ContentType.IntegerNumber;
         }
 
         /// <summary>
@@ -422,15 +422,15 @@ namespace RobTomb
         /// </summary>
         public static void Bribe(int num)
         {
-            MassageWindow.instance.inputTextField.contentType = InputField.ContentType.Name;
-            if (num > ActorMenu.instance.ActorResource(DateFile.instance.mianActorId)[5])
+            ui_MessageWindow.Instance.inputTextField.contentType = InputField.ContentType.Name;
+            if (num > DateFile.instance.ActorResource(DateFile.instance.mianActorId)[5])
             {
                 Main.EndToEvent(1998014204);
                 return;
             }
             else UIDate.instance.ChangeResource(DateFile.instance.mianActorId, 5, -num);
             Main.haveOtherWay = true;
-            int id = MassageWindow.instance.mianEventDate[1];
+            int id = MessageEventManager.Instance.MainEventData[1];
             int goodness = DateFile.instance.GetActorGoodness(id);
             int level = Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
             int level2 = Math.Abs(int.Parse(DateFile.instance.GetActorDate(id, 20, false)));
@@ -494,15 +494,15 @@ namespace RobTomb
         public static void NoResistance()
         {
            
-            MassageWindow.instance.chooseItemEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998014402]);
-            if (MassageWindow.instance.eventValue[1] == 0)
+            ui_MessageWindow.Instance.chooseItemEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998014402]);
+            if (MessageEventManager.Instance.EventValue[1] == 0)
             {
                 for (int i = 0; i < 6; i++)
                 {
                     getRecourse[i] = 0;
                 }
             }
-            if (MassageWindow.instance.eventValue[1] == 1)
+            if (MessageEventManager.Instance.EventValue[1] == 1)
             {
                 if (getItem.Keys.Contains(safeitemId))
                 {
@@ -510,7 +510,7 @@ namespace RobTomb
                     safeitemId = 0;
                 }
             }
-            if (!haveOtherWay && UnityEngine.Random.Range(0, 100) < 30 + ActorMenu.instance.GetActorResources(DateFile.instance.mianActorId)[5] / 5)
+            if (!haveOtherWay && UnityEngine.Random.Range(0, 100) < 30 + DateFile.instance.GetActorResources(DateFile.instance.mianActorId)[5] / 5)
             {
                 EndToEvent(1998014403);
             }
@@ -534,18 +534,18 @@ namespace RobTomb
         public static IEnumerator BackToMassageWindow(float waitTime, int giveItemId, int changeEvent, int otherValue1)
         {
             yield return new WaitForSeconds(waitTime);
-            MassageWindow.instance.mianEventDate = new int[]
+            MessageEventManager.Instance.MainEventData = new int[]
             {
-            MassageWindow.instance.mianEventDate[0],
-            MassageWindow.instance.mianEventDate[1],
+            MessageEventManager.Instance.MainEventData[0],
+            MessageEventManager.Instance.MainEventData[1],
             RobTomb_LoadData.id["Event_Date"][1998003],
-            MassageWindow.instance.mianEventDate[3],
+            MessageEventManager.Instance.MainEventData[3],
             giveItemId,
             changeEvent,
             otherValue1
             };
-            MassageWindow.instance.GetEventBooty(DateFile.instance.MianActorID(), MassageWindow.instance.massageItemTyp);
-            MassageWindow.instance.ChangeMassageWindow(MassageWindow.instance.massageItemTyp);
+            ui_MessageWindow.Instance.GetEventBooty(DateFile.instance.MianActorID(), ui_MessageWindow.Instance.massageItemTyp);
+            ui_MessageWindow.Instance.ChangeMassageWindow(ui_MessageWindow.Instance.massageItemTyp);
             yield break;
         }
 
@@ -555,14 +555,14 @@ namespace RobTomb
         public static void RobTomb2()
         {
             int actorId = DateFile.instance.MianActorID();
-            if (!MassageWindow.instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
-                MassageWindow.instance.chooseActorEvents.Add(RobTomb_LoadData.id["Event_Date"][1998001]);
-            MassageWindow.instance.SetEventWindow(new int[]
+            if (!ui_MessageWindow.Instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
+                ui_MessageWindow.Instance.chooseActorEvents.Add(RobTomb_LoadData.id["Event_Date"][1998001]);
+            ui_MessageWindow.Instance.SetEventWindow(new int[]
             { 0,
              -1,
             RobTomb_LoadData.id["Event_Date"][19981],
              0
-             }, false);
+             });
         }
 
         /// <summary>
@@ -598,7 +598,7 @@ namespace RobTomb
                 int level = int.Parse(DateFile.instance.gongFaDate[gongFaId][2]);
                 for (int i = 0; i < 10; i++)
                 {
-                    if (UnityEngine.Random.Range(0, 100) < DateFile.instance.GetActorValue(actorId, gongfazizhi, false) / 5 + ActorMenu.instance.GetActorResources(actorId)[1] / 2 + DateFile.instance.GetActorValue(actorId, 65, false) / 10 - 5 * level)
+                    if (UnityEngine.Random.Range(0, 100) < DateFile.instance.GetActorValue(actorId, gongfazizhi, false) / 5 + DateFile.instance.GetActorResources(actorId)[1] / 2 + DateFile.instance.GetActorValue(actorId, 65, false) / 10 - 5 * level)
                     {
                         rand += 1;
                     }
@@ -606,13 +606,13 @@ namespace RobTomb
                 int badlevel = 0;
                 for (int i = 0; i < rand; i++)
                 {
-                    if (UnityEngine.Random.Range(0, 100) < 100 - DateFile.instance.GetActorValue(actorId, gongfazizhi, false) / 5 - ActorMenu.instance.GetActorResources(actorId)[5] / 2 - DateFile.instance.GetActorValue(actorId, 65, false) / 10 + 5 * level)
+                    if (UnityEngine.Random.Range(0, 100) < 100 - DateFile.instance.GetActorValue(actorId, gongfazizhi, false) / 5 - DateFile.instance.GetActorResources(actorId)[5] / 2 - DateFile.instance.GetActorValue(actorId, 65, false) / 10 + 5 * level)
                     {
                         badlevel += 1;
                     }
                 }
                 DateFile.instance.ChangeActorGongFa(actorId, gongFaId, 25, rand, badlevel, false);
-                ActorMenu.instance.ChangeMianQi(actorId, 100 * int.Parse(DateFile.instance.gongFaDate[gongFaId][2]) * badlevel, 5);
+                DateFile.instance.ChangeMianQi(actorId, 100 * int.Parse(DateFile.instance.gongFaDate[gongFaId][2]) * badlevel, 5);
                 if(badlevel!=0) TipsWindow.instance.SetTips(0, new string[] { "你渐渐有了些异样的体悟......" }, 200);
                 DateFile.instance.actorsDate[dieActorId][79] = "0";
                 EndToEvent(199801611);
@@ -649,7 +649,7 @@ namespace RobTomb
                 int level = int.Parse(DateFile.instance.skillDate[gongFaId][2]);
                 for (int i = 0; i < 10; i++)
                 {
-                    if (UnityEngine.Random.Range(0, 100) < DateFile.instance.GetActorValue(actorId,501+jiyi,false) / 5+ ActorMenu.instance.GetActorResources(actorId)[1] / 2 + DateFile.instance.GetActorValue(actorId, 65, true) / 10 - 5 * level)
+                    if (UnityEngine.Random.Range(0, 100) < DateFile.instance.GetActorValue(actorId,501+jiyi,false) / 5+ DateFile.instance.GetActorResources(actorId)[1] / 2 + DateFile.instance.GetActorValue(actorId, 65, true) / 10 - 5 * level)
                     {
                         rand += 1;
                     }
@@ -666,8 +666,8 @@ namespace RobTomb
         /// <param name="eventId"></param>
         public static void EndToEvent(int eventId)
         {
-            MassageWindow.instance.mianEventDate[2] = RobTomb_LoadData.id["Event_Date"][eventId];
-            MassageWindow.instance.eventValue = new List<int>();
+            MessageEventManager.Instance.MainEventData[2] = RobTomb_LoadData.id["Event_Date"][eventId];
+            MessageEventManager.Instance.EventValue = new List<int>();
         }
 
 
@@ -712,7 +712,7 @@ namespace RobTomb
 
         public static void RobTombsuccessfully()
         {
-            if(MassageWindow.instance.eventValue[1]==1)
+            if(MessageEventManager.Instance.EventValue[1]==1)
             {
 
                 if (getItemCache.Count > 0)
@@ -745,7 +745,7 @@ namespace RobTomb
                 KeyValuePair<int, int> item = getItemCache.Last();
                 getItemCache.Remove(item.Key);
                 getItem.Add(item.Key,item.Value);
-                MassageWindow.instance.mianEventDate[3] = item.Key;
+                MessageEventManager.Instance.MainEventData[3] = item.Key;
                 EndToEvent(1998020);
 
                 return;
@@ -917,10 +917,10 @@ namespace RobTomb
         public static void SneakRaid()
         {
             int actorId = DateFile.instance.mianActorId;
-            int[] actorResources = ActorMenu.instance.GetActorResources(actorId);
+            int[] actorResources = DateFile.instance.GetActorResources(actorId);
             int jilv = 33;
             int actorPower = int.Parse(DateFile.instance.GetActorDate(actorId, 993, false));
-            int enemyPower = int.Parse(DateFile.instance.GetActorDate(MassageWindow.instance.mianEventDate[1], 993, false));
+            int enemyPower = int.Parse(DateFile.instance.GetActorDate(MessageEventManager.Instance.MainEventData[1], 993, false));
             if (actorPower >= enemyPower) jilv -= 20;
             else jilv += 20;
             jilv += actorResources[5] / 2;
@@ -940,7 +940,7 @@ namespace RobTomb
         public static void Kill()
         {
             int actorId = DateFile.instance.mianActorId;
-            int num = MassageWindow.instance.mianEventDate[1];
+            int num = MessageEventManager.Instance.MainEventData[1];
             Main.hasKill = true;
             if(int.Parse(DateFile.instance.GetActorDate(num,8,false))==1)
             {
@@ -965,16 +965,16 @@ namespace RobTomb
         /// </summary>
         public static void RobTomb()
         {
-            if (MassageWindow.instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
+            if (ui_MessageWindow.Instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
             {
-                MassageWindow.instance.chooseActorEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998001]);
+                ui_MessageWindow.Instance.chooseActorEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998001]);
             }
             int partId = WorldMapSystem.instance.choosePartId;
             int placeId = WorldMapSystem.instance.choosePlaceId;
             int actorId = DateFile.instance.MianActorID();
             int gangId = int.Parse(DateFile.instance.actorsDate[dieActorId][19]);
             int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
-            int[] actorResources = ActorMenu.instance.GetActorResources(actorId);
+            int[] actorResources = DateFile.instance.GetActorResources(actorId);
             int jilv;
             List<int> friends = new List<int>();
             int a = 0;
@@ -994,7 +994,7 @@ namespace RobTomb
                 }
                 a = Mathf.Clamp(baseFriends.Count * 5, 0, 50);             
             }
-            switch(MassageWindow.instance.eventValue[1])
+            switch(MessageEventManager.Instance.EventValue[1])
             {
                 case 1:
                     {
@@ -1052,7 +1052,7 @@ namespace RobTomb
                 if(UnityEngine.Random.Range(0, 100)<30-actorResources[4]/2 + (isTired?20:0))
                 {
                     int typ = UnityEngine.Random.Range(0, 5);
-                    ActorMenu.instance.ChangePoison(actorId,typ , (UnityEngine.Random.Range(0, 100)>10*level?UnityEngine.Random.Range(50,level*50): UnityEngine.Random.Range(100, level * 100))*(100-actorResources[4])/100);
+                    DateFile.instance.ChangePoison(actorId,typ , (UnityEngine.Random.Range(0, 100)>10*level?UnityEngine.Random.Range(50,level*50): UnityEngine.Random.Range(100, level * 100))*(100-actorResources[4])/100);
                     if (text != "") text += "\n";
                     text = text + "在墓中吸入不明的气体，NAME中毒了......";
                 }
@@ -1135,8 +1135,8 @@ namespace RobTomb
                 //挖到一个粽子
                 if (UnityEngine.Random.Range(0, 100) < 5 || int.Parse(DateFile.instance.actorsDate[dieActorId][79]) == 2)
                 {
-                    MassageWindow.instance.mianEventDate[1] = RobTomb_LoadData.id["PresetActor_Date"][2000];
-                    Main.Logger.Log(MassageWindow.instance.mianEventDate[1].ToString());
+                    MessageEventManager.Instance.MainEventData[1] = RobTomb_LoadData.id["PresetActor_Date"][2000];
+                    Main.Logger.Log(MessageEventManager.Instance.MainEventData[1].ToString());
                     DateFile.instance.actorsDate[dieActorId][79]="2";
                     EndToEvent(1998023);
                     return;
@@ -1175,7 +1175,7 @@ namespace RobTomb
                             ""
                     }, 100, -755f, -380f, 600, 100);
                     Logger.Log("福缘深厚");
-                    MassageWindow.instance.mianEventDate[3] = getItemId;
+                    MessageEventManager.Instance.MainEventData[3] = getItemId;
                     EndToEvent(1998018);
                     return;
                 }
@@ -1244,7 +1244,7 @@ namespace RobTomb
                 if (getRecourseCache.Max()!=0 || getItemCache.Count!=0)
                 {
                     Main.Logger.Log("成功盗取道具资源");
-                    MassageWindow.instance.eventValue = new List<int> { 0, 0 };
+                    MessageEventManager.Instance.EventValue = new List<int> { 0, 0 };
                     Main.RobTombsuccessfully();
                 }
                 else
@@ -1272,7 +1272,7 @@ namespace RobTomb
                     int id = normalActors[UnityEngine.Random.Range(0, normalActors.Count)];
                     bool battle = false;
                     int goodness = DateFile.instance.GetActorGoodness(id);
-                    int brave = ActorMenu.instance.GetActorResources(id)[3];
+                    int brave = DateFile.instance.GetActorResources(id)[3];
                     int power = int.Parse(DateFile.instance.GetActorDate(id, 993, false));
                     if (goodness == 2||goodness==4)
                     {
@@ -1297,20 +1297,20 @@ namespace RobTomb
                             boss.AddRange(DateFile.instance.GetGangActor(baseGongId, 2));
                             if(boss.Count>0)
                             {
-                                MassageWindow.instance.mianEventDate[1] = boss[UnityEngine.Random.Range(0, boss.Count)];
+                                MessageEventManager.Instance.MainEventData[1] = boss[UnityEngine.Random.Range(0, boss.Count)];
                                 Logger.Log("援军到场");
                                 EndToEvent(19980265);
                                 return;
                             }
                         }
                         Logger.Log(battleEnemyId.ToString());
-                        MassageWindow.instance.mianEventDate[1] = battleEnemyId;
+                        MessageEventManager.Instance.MainEventData[1] = battleEnemyId;
                         Logger.Log("被人发现1");
                         EndToEvent(1998013);
                     }
                     else 
                     {
-                        MassageWindow.instance.mianEventDate[1] = enemyValueId;
+                        MessageEventManager.Instance.MainEventData[1] = enemyValueId;
                         Logger.Log("被人发现2");
                         EndToEvent(1998024);
                     }                    
@@ -1369,7 +1369,7 @@ namespace RobTomb
     /// <summary>
     ///设置按钮可用于否
     /// </summary>
-    [HarmonyPatch(typeof(WorldMapSystem), "UpdateToStoryButton")]
+    [HarmonyPatch(typeof(ChoosePlaceWindow), "UpdateToStoryButton")]
     public class RobTomb_UpdateToStoryButton_Patch
     {
         public static bool Prefix()
@@ -1386,7 +1386,7 @@ namespace RobTomb
                 DateFile.instance.massageDate[619][1] = "消耗时间挖掘此地坟墓获取道具或资源…";
                 bool flag = WorldMapSystem.instance.choosePartId == DateFile.instance.mianPartId && WorldMapSystem.instance.choosePlaceId == DateFile.instance.mianPlaceId;
                 List<int> list = DateFile.instance.HaveActor(WorldMapSystem.instance.choosePartId, WorldMapSystem.instance.choosePlaceId, false, true, false, false);
-                WorldMapSystem.instance.openToStoryButton.interactable = list.Count > 0 && flag;
+                ChoosePlaceWindow.Instance.openToStoryButton.interactable = list.Count > 0 && flag;
                 return false;
             }
             else
@@ -1401,7 +1401,7 @@ namespace RobTomb
     /// <summary>
     /// 创建坟墓页面
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "GetActor")]
+    [HarmonyPatch(typeof(ui_MessageWindow), "GetActor")]
     public class RobTomb_GetAcotr_Patch
     {
         public static bool Prefix()
@@ -1410,11 +1410,11 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (Main.settings.daomu && MassageWindow.instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998001])
+            else if (Main.settings.daomu && ui_MessageWindow.Instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998001])
             {
-                for (int i = 0; i < MassageWindow.instance.actorHolder.childCount; i++)
+                for (int i = 0; i < ui_MessageWindow.Instance.actorHolder.childCount; i++)
                 {
-                    UnityEngine.Object.Destroy(MassageWindow.instance.actorHolder.GetChild(i).gameObject);
+                    UnityEngine.Object.Destroy(ui_MessageWindow.Instance.actorHolder.GetChild(i).gameObject);
                 }
                 int num = DateFile.instance.MianActorID();
                 int partId = DateFile.instance.mianPartId;
@@ -1488,17 +1488,17 @@ namespace RobTomb
                 {
                     int num11 = dieActors[num10];
                     int level = Math.Abs(int.Parse(DateFile.instance.GetActorDate(num11, 20, false)));
-                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(MassageWindow.instance.actorIcon, Vector3.zero, Quaternion.identity);
+                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(ui_MessageWindow.Instance.actorIcon, Vector3.zero, Quaternion.identity);
                     gameObject.name = "Actor," + num11;
-                    gameObject.transform.SetParent(MassageWindow.instance.actorHolder, false);
-                    gameObject.GetComponent<Toggle>().group = MassageWindow.instance.actorHolder.GetComponent<ToggleGroup>();
+                    gameObject.transform.SetParent(ui_MessageWindow.Instance.actorHolder, false);
+                    gameObject.GetComponent<Toggle>().group = ui_MessageWindow.Instance.actorHolder.GetComponent<ToggleGroup>();
                     if (DateFile.instance.acotrTeamDate.Contains(num11))
                     {
                         gameObject.transform.Find("IsInTeamIcon").gameObject.SetActive(true);
                     }
                     gameObject.transform.Find("IsInBuildingIcon").gameObject.SetActive(DateFile.instance.ActorIsWorking(num11) != null);
                     int num12 = DateFile.instance.GetActorFavor(false, num, num11, false, false);
-                    gameObject.transform.Find("ListActorFavorText").GetComponent<Text>().text = ((num11 != num && num12 != -1) ? ActorMenu.instance.Color5(num12, true, -1) : DateFile.instance.SetColoer(20002, DateFile.instance.massageDate[303][2], false));
+                    gameObject.transform.Find("ListActorFavorText").GetComponent<Text>().text = ((num11 != num && num12 != -1) ? DateFile.instance.Color5(num12, true, -1) : DateFile.instance.SetColoer(20002, DateFile.instance.massageDate[303][2], false));
                     gameObject.transform.Find("ListActorNameText").GetComponent<Text>().text = DateFile.instance.SetColoer(20011 - level, DateFile.instance.GetActorName(num11, false, false));
                     Transform transform = gameObject.transform.Find("ListActorFaceHolder").Find("FaceMask").Find("MianActorFace");
                     transform.GetComponent<ActorFace>().SetActorFace(num11, false);
@@ -1514,10 +1514,10 @@ namespace RobTomb
     /// <summary>
     /// 选择盗墓人物
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "SetActor")]
+    [HarmonyPatch(typeof(ui_MessageWindow), "SetActor")]
     public class RobTomb_SetActor_Patch
     {
-        public static bool Prefix(MassageWindow __instance, ref int ___chooseActorId)
+        public static bool Prefix(MessageEventManager __instance, ref int ___chooseActorId)
         {
             if (!Main.enabled || !Main.settings.daomu)
             {
@@ -1525,16 +1525,16 @@ namespace RobTomb
             }
             else
             {
-                if (__instance.mianEventDate[2] == RobTomb_LoadData.id["Event_Date"][19981])
+                if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][19981])
                 {
-                    for (int i = 0; i < MassageWindow.instance.actorHolder.childCount; i++)
+                    for (int i = 0; i < ui_MessageWindow.Instance.actorHolder.childCount; i++)
                     {
-                        UnityEngine.Object.Destroy(MassageWindow.instance.actorHolder.GetChild(i).gameObject);
+                        UnityEngine.Object.Destroy(ui_MessageWindow.Instance.actorHolder.GetChild(i).gameObject);
                     }
                     Main.dieActorId = ___chooseActorId;
-                    __instance.mianEventDate[1] = ___chooseActorId;
-                    MassageWindow.instance.CloseActorsWidow();
-                    MassageWindow.instance.StartCoroutine(Main.BackToMassageWindow(0.2f, ___chooseActorId, 0, 0));
+                    __instance.MainEventData[1] = ___chooseActorId;
+                    ui_MessageWindow.Instance.CloseActorsWindow();
+                    ui_MessageWindow.Instance.StartCoroutine(Main.BackToMassageWindow(0.2f, ___chooseActorId, 0, 0));
                     return false;
                 }
                 else return true;
@@ -1545,7 +1545,7 @@ namespace RobTomb
     /// <summary>
     ///  创建选择物品菜单
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "GetItem")]
+    [HarmonyPatch(typeof(ui_MessageWindow), "GetItem")]
     public class RobTomb_GetItem_Patch
     {
         public static bool Prefix()
@@ -1554,27 +1554,27 @@ namespace RobTomb
             {
                 return true;
             }
-            else if(MassageWindow.instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998014402])
+            else if(ui_MessageWindow.Instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998014402])
             {
-                for (int i = 0; i < MassageWindow.instance.itemHolder.childCount; i++)
+                for (int i = 0; i < ui_MessageWindow.Instance.itemHolder.childCount; i++)
                 {
-                    UnityEngine.Object.Destroy(MassageWindow.instance.itemHolder.GetChild(i).gameObject);
+                    UnityEngine.Object.Destroy(ui_MessageWindow.Instance.itemHolder.GetChild(i).gameObject);
                 }
                 List<int> itemId = new List<int>(Main.getItem.Keys);
                 int actorID = DateFile.instance.mianActorId;
                 for (int i = 0; i < itemId.Count; i++)
                 {
                     int num8 = itemId[i];
-                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(ActorMenu.instance.itemIconNoDrag, Vector3.zero, Quaternion.identity);
+                    GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(UsefulPrefabs.instance.itemIconNoDrag, Vector3.zero, Quaternion.identity);
                     gameObject.name = "Item," + num8;
-                    gameObject.transform.SetParent(MassageWindow.instance.itemHolder, false);
-                    gameObject.GetComponent<Toggle>().group = MassageWindow.instance.itemHolder.GetComponent<ToggleGroup>();
+                    gameObject.transform.SetParent(ui_MessageWindow.Instance.itemHolder, false);
+                    gameObject.GetComponent<Toggle>().group = ui_MessageWindow.Instance.itemHolder.GetComponent<ToggleGroup>();
                     Image component = gameObject.transform.Find("ItemBack").GetComponent<Image>();
                     SingletonObject.getInstance<DynamicSetSprite>().SetImageSprite(component, "itemBackSprites", new int[]
                     {
                 int.Parse(DateFile.instance.GetItemDate(num8, 4, true))
                     });
-                    component.color = ActorMenu.instance.LevelColor(int.Parse(DateFile.instance.GetItemDate(num8, 8, true)));
+                    component.color = DateFile.instance.LevelColor(int.Parse(DateFile.instance.GetItemDate(num8, 8, true)));
                     bool flag16 = int.Parse(DateFile.instance.GetItemDate(num8, 6, true)) > 0;
                     if (flag16)
                     {
@@ -1584,7 +1584,7 @@ namespace RobTomb
                     {
                         int num11 = int.Parse(DateFile.instance.GetItemDate(num8, 901, true));
                         int num12 = int.Parse(DateFile.instance.GetItemDate(num8, 902, true));
-                        gameObject.transform.Find("ItemNumberText").GetComponent<Text>().text = string.Format("{0}{1}</color>/{2}", ActorMenu.instance.Color3(num11, num12), num11, num12);
+                        gameObject.transform.Find("ItemNumberText").GetComponent<Text>().text = string.Format("{0}{1}</color>/{2}", DateFile.instance.Color3(num11, num12), num11, num12);
                     }
                     GameObject gameObject2 = gameObject.transform.Find("ItemIcon").gameObject;
                     gameObject2.name = "ItemIcon," + num8;
@@ -1602,10 +1602,10 @@ namespace RobTomb
     /// <summary>
     ///选择藏匿的物品
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "SetItem")]
+    [HarmonyPatch(typeof(ui_MessageWindow), "SetItem")]
     public class RobTomb_SetItem_Patch
     {
-        public static bool Prefix(MassageWindow __instance)
+        public static bool Prefix(MessageEventManager __instance)
         {
             if (!Main.enabled || !Main.settings.daomu)
             {
@@ -1613,11 +1613,11 @@ namespace RobTomb
             }
             else
             {
-                if (__instance.mianEventDate[2] == RobTomb_LoadData.id["Event_Date"][199801440])
+                if (__instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801440])
                 {
-                    Main.safeitemId = ActorMenu.instance.choseItemId;
-                    MassageWindow.instance.CloseItemsWidow();
-                    MassageWindow.instance.StartCoroutine(Main.BackToMassageWindow(0.2f, ActorMenu.instance.choseItemId, 0, 0));
+                    Main.safeitemId = ActorMenu.choseItemId;
+                    ui_MessageWindow.Instance.CloseItemsWindow();
+                    MessageEventManager.Instance.StartCoroutine(Main.BackToMassageWindow(0.2f, ActorMenu.choseItemId, 0, 0));
                     return false;
                 }
                 else return true;
@@ -1628,7 +1628,7 @@ namespace RobTomb
     /// <summary>
     /// 事件结束
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "EndEvent")]
+    [HarmonyPatch(typeof(MessageEventManager), "EndEvent")]
     public class RobTomb_EndEvent_Patch
     {
         public static bool Prefix(string ___inputText)
@@ -1640,9 +1640,9 @@ namespace RobTomb
             else
             {
                 int actorId = DateFile.instance.mianActorId;
-                if (MassageWindow.instance.eventValue.Count > 0 && MassageWindow.instance.eventValue[0] != 0)
+                if (MessageEventManager.Instance.EventValue.Count > 0 && MessageEventManager.Instance.EventValue[0] != 0)
                 {
-                    switch (MassageWindow.instance.eventValue[0])
+                    switch (MessageEventManager.Instance.EventValue[0])
                     {
                         case 199801: 
                             {
@@ -1685,8 +1685,8 @@ namespace RobTomb
                             }
                         case 199805:
                             {
-                                if (!MassageWindow.instance.chooseItemEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998014402]))
-                                    MassageWindow.instance.chooseItemEvents.Add(RobTomb_LoadData.id["Event_Date"][1998014402]);
+                                if (!ui_MessageWindow.Instance.chooseItemEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998014402]))
+                                    ui_MessageWindow.Instance.chooseItemEvents.Add(RobTomb_LoadData.id["Event_Date"][1998014402]);
                                 if (Main.hasKill)
                                     DateFile.instance.SetActorFameList(actorId, 108, 1);
                                 return false;
@@ -1758,7 +1758,7 @@ namespace RobTomb
     /// <summary>
     /// 自定义替换文本
     /// </summary>
-    [HarmonyPatch(typeof(MassageWindow), "ChangeText")]
+    [HarmonyPatch(typeof(ui_MessageWindow), "ChangeText")]
     public class RobTomb_ChangeText_Patch
     {
         public static void Postfix(ref string __result)
@@ -1767,7 +1767,7 @@ namespace RobTomb
             {
                 return;
             }
-            else if(RobTomb_LoadData.id["Event_Date"].Values.Contains(MassageWindow.instance.mianEventDate[2]))
+            else if(RobTomb_LoadData.id["Event_Date"].Values.Contains(MessageEventManager.Instance.MainEventData[2]))
             {
                 try
                 {
@@ -1778,7 +1778,7 @@ namespace RobTomb
                     __result = __result.Replace("PLACE", DateFile.instance.GetGangDate(Main.baseGongId, 0));
                     __result = __result.Replace("FAME", DateFile.instance.GetActorFameText(DateFile.instance.mianActorId));
                     __result = __result.Replace("XING", DateFile.instance.actorSurnameDate[int.Parse(DateFile.instance.GetActorDate(DateFile.instance.mianActorId, 29, false))][0]);
-                    if (MassageWindow.instance.mianEventDate[2] == RobTomb_LoadData.id["Event_Date"][1998017] || MassageWindow.instance.mianEventDate[2] == RobTomb_LoadData.id["Event_Date"][199801711] || MassageWindow.instance.mianEventDate[2] == RobTomb_LoadData.id["Event_Date"][199801713])
+                    if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][1998017] || MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801711] || MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801713])
                         __result = __result.Replace("JIYI", DateFile.instance.skillDate[Main.gongFaId][0]);
                     else
                         __result = __result.Replace("GONGFA", DateFile.instance.gongFaDate[Main.gongFaId][0]);
@@ -1795,7 +1795,7 @@ namespace RobTomb
         }
     }
 
-    [HarmonyPatch(typeof(MassageWindow), "GetEventIF")]
+    [HarmonyPatch(typeof(MessageEventManager), "GetEventIF")]
     public class RobTomb_GetEventIF_Patch
     {
         public static bool Prefix(ref bool __result, int eventId)
@@ -1950,7 +1950,8 @@ namespace RobTomb
                 {
                     DateFile.instance.itemsDate[weaponId][8]= Mathf.Clamp(zoobielevel, 1, 9).ToString();
                 }
-                DateFile.instance.SetActorEquipGongFa(num, true, true);
+                Equipping equipping = new Equipping(true);
+                equipping.EquipSkillsAndItems(num, true, true);
                 __result=num;
                 return false;
             }
@@ -2099,7 +2100,7 @@ namespace RobTomb
                     DateFile.instance.SetEvent(new int[]
                                     {
                                     0,
-                                    MassageWindow.instance.mianEventDate[1],
+                                    MessageEventManager.Instance.MainEventData[1],
                                     num2,
                                     0
                                     }, true, true);
@@ -2146,8 +2147,8 @@ namespace RobTomb
                     MethodInfo addbattleinjury = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "AddBattleInjury");
                     BattleSystem.instance.ShowBattleState(779, isActor);
                     int injurytyp = int.Parse(DateFile.instance.injuryDate[injuryId][1]) > 0 ? 0 : 1;
-                    int hp = ActorMenu.instance.MaxHp(actorId);
-                    int sp = ActorMenu.instance.MaxSp(actorId);
+                    int hp = DateFile.instance.MaxHp(actorId);
+                    int sp = DateFile.instance.MaxSp(actorId);
                     BattleSystem.instance.ShowBattleState(779, isActor);
                     float ssp = (float)sp / (hp + sp);
                     flag = false;

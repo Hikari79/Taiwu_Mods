@@ -18,6 +18,7 @@ namespace AutoUpdate
             initial, networkError, checkUpdateing, updating, httpError, needUpdate, newest, error, updateSuccessfully
         }
         public static AutoUpdate instance;
+        public static UpdateInfo updateInfo;
         private static string output = string.Empty;
         private static string checkUpdateUrl = "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/UpdateInfo.json";
         private static string downloadUrl = "";
@@ -49,7 +50,8 @@ namespace AutoUpdate
                 case Status.error:
                     break;
                 case Status.needUpdate:
-                    output = "有可用更新";
+                    output = "有可用更新\n";
+                    output += updateInfo.updateInfo;
                     break;
                 case Status.httpError:
                     output = "httperror.";
@@ -100,7 +102,7 @@ namespace AutoUpdate
             }
             else
             {
-                UpdateInfo updateInfo = ParseJson(www.downloadHandler.text, modEntry.Info.Id);
+                updateInfo = ParseJson(www.downloadHandler.text, modEntry.Info.Id);
                 if (VersionCompare(modEntry.Info.Version, updateInfo.latestVersion))
                 {
                     downloadUrl = updateInfo.downLoadUrl;
@@ -146,7 +148,7 @@ namespace AutoUpdate
             }
             status = Status.error;
             output = "无此mod资料";
-            return new UpdateInfo("modname", "0.0.0", "");
+            return new UpdateInfo("modname", "0.0.0", "","");
         }
 
         public static IEnumerator Update(UnityModManager.ModEntry modEntry, string url)
@@ -176,11 +178,13 @@ namespace AutoUpdate
         public string modName;
         public string latestVersion;
         public string downLoadUrl;
-        public UpdateInfo(string name, string version, string url)
+        public string updateInfo;
+        public UpdateInfo(string name, string version, string url,string updateinfo)
         {
             modName = name;
             latestVersion = version;
             downLoadUrl = url;
+            this.updateInfo = updateinfo;
         }
     }
 }

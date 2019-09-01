@@ -2,16 +2,21 @@
     {
         "modName": "RobTomb",
         "latestVersion": "2.1.1",
-        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.0.zip"
+        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.1.zip",
+		"updateInfo":"V2.1.1
+·适配游戏0.2.5.6
+·修复在mod未加载成功时（打开游戏就红字）无法自动更新/检测更新的bug"
     },
     {
         "modName": "WeaponCostFix",
         "latestVersion": "1.0.3",
-        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/WeaponCostFixV1.0.3.zip"
+        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/WeaponCostFixV1.0.3.zip",
+		"updateInfo":""
     },
     {
         "modName": "BearmanDie",
         "latestVersion": "1.0.3",
-        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/BearmanDieV1.0.3.zip"
+        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/BearmanDieV1.0.3.zip",
+		"updateInfo":""
     }
 ]

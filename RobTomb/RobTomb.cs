@@ -1631,7 +1631,7 @@ namespace RobTomb
     [HarmonyPatch(typeof(MessageEventManager), "EndEvent")]
     public class RobTomb_EndEvent_Patch
     {
-        public static bool Prefix(string ___inputText)
+        public static bool Prefix()
         {
             if (!Main.enabled || !Main.settings.daomu)
             {
@@ -1668,7 +1668,7 @@ namespace RobTomb
 
                         case 199806:
                             {
-                                Main.Bribe(int.Parse(___inputText));
+                                Main.Bribe(int.Parse(ui_MessageWindow.inputText));
                                 return false;
                             }
 
@@ -2074,10 +2074,10 @@ namespace RobTomb
         }
     }
     
-    [HarmonyPatch(typeof(BattleSystem), "SetupBattleEndEvent")]
+    [HarmonyPatch(typeof(BattleEndWindow), "SetupBattleEndEvent")]
     public class RobTomb_SetupBattleEndEvent_Patch
     {
-        public static bool Prefix(ref int ___battleEndTyp, ref int ___mianEnemyId)
+        public static bool Prefix()
         {
             if(!Main.enabled||!Main.settings.daomu)
             {
@@ -2085,7 +2085,7 @@ namespace RobTomb
             }
             else
             {
-                string[] array = DateFile.instance.enemyTeamDate[StartBattle.instance.enemyTeamId][101 + ___battleEndTyp].Split(new char[]
+                string[] array = DateFile.instance.enemyTeamDate[StartBattle.instance.enemyTeamId][101 + BattleEndWindow.instance.battleEndTyp].Split(new char[]
                 {
                  '&'
                 });

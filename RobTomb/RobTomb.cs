@@ -11,6 +11,7 @@ using System.Collections;
 using DG.Tweening;
 using UnityEngine.Networking;
 using AI;
+using System.Diagnostics;
 
 namespace RobTomb
 {
@@ -113,6 +114,7 @@ namespace RobTomb
             modEntry.OnSaveGUI = OnSaveGUI;
             if (settings.autoCheckUpdate)
                 AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
+
             var harmony = HarmonyInstance.Create(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             return true;
@@ -557,12 +559,12 @@ namespace RobTomb
             int actorId = DateFile.instance.MianActorID();
             if (!ui_MessageWindow.Instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
                 ui_MessageWindow.Instance.chooseActorEvents.Add(RobTomb_LoadData.id["Event_Date"][1998001]);
-            ui_MessageWindow.Instance.SetEventWindow(new int[]
+            DateFile.instance.SetEvent(new int[]
             { 0,
              -1,
             RobTomb_LoadData.id["Event_Date"][19981],
              0
-             });
+             },true);
         }
 
         /// <summary>
@@ -787,7 +789,7 @@ namespace RobTomb
         }
         */
 
-        public static void Clear()
+        public static void Reset()
         {
             round = 0;
             dieActorId = 0;
@@ -884,7 +886,8 @@ namespace RobTomb
         /// </summary>
         public static void BattleAgainstZoobie()
         {
-            StartBattle.instance.ShowStartBattleWindow(RobTomb_LoadData.id["EnemyTeam_Date"][2000], 0,2, new List<int> { RobTomb_LoadData.id["PresetActor_Date"][2000] });
+            MessageEventManager.Instance.MakeEventBattel(RobTomb_LoadData.id["EnemyTeam_Date"][2000], 0);
+            //StartBattle.instance.ShowStartBattleWindow();
         }
 
         /// <summary>
@@ -1138,7 +1141,7 @@ namespace RobTomb
                     MessageEventManager.Instance.MainEventData[1] = RobTomb_LoadData.id["PresetActor_Date"][2000];
                     Main.Logger.Log(MessageEventManager.Instance.MainEventData[1].ToString());
                     DateFile.instance.actorsDate[dieActorId][79]="2";
-                    EndToEvent(1998023);
+                    EndToEvent (1998023);
                     return;
                 }
 
@@ -1341,7 +1344,7 @@ namespace RobTomb
                 
                 int partId = DateFile.instance.mianPartId;
                 int placeId = DateFile.instance.mianPlaceId;
-                Main.Clear();
+                Main.Reset();
                 Main.normalActors = DateFile.instance.HaveActor(partId, placeId, true, false, true, true);
                 List<int> gangId = new List<int>(DateFile.instance.gangDate.Keys);
                 for(int i =0;i<gangId.Count;i++)
@@ -1370,7 +1373,7 @@ namespace RobTomb
     ///设置按钮可用于否
     /// </summary>
     [HarmonyPatch(typeof(ChoosePlaceWindow), "UpdateToStoryButton")]
-    public class RobTomb_UpdateToStoryButton_Patch
+    public class RobTomb_ChoosePlaceWindow_Patch
     {
         public static bool Prefix()
         {
@@ -1517,7 +1520,7 @@ namespace RobTomb
     [HarmonyPatch(typeof(ui_MessageWindow), "SetActor")]
     public class RobTomb_SetActor_Patch
     {
-        public static bool Prefix(MessageEventManager __instance, ref int ___chooseActorId)
+        public static bool Prefix(ref int ___chooseActorId)
         {
             if (!Main.enabled || !Main.settings.daomu)
             {
@@ -1532,7 +1535,7 @@ namespace RobTomb
                         UnityEngine.Object.Destroy(ui_MessageWindow.Instance.actorHolder.GetChild(i).gameObject);
                     }
                     Main.dieActorId = ___chooseActorId;
-                    __instance.MainEventData[1] = ___chooseActorId;
+                    MessageEventManager.Instance.MainEventData[1] = ___chooseActorId;
                     ui_MessageWindow.Instance.CloseActorsWindow();
                     ui_MessageWindow.Instance.StartCoroutine(Main.BackToMassageWindow(0.2f, ___chooseActorId, 0, 0));
                     return false;
@@ -1605,7 +1608,7 @@ namespace RobTomb
     [HarmonyPatch(typeof(ui_MessageWindow), "SetItem")]
     public class RobTomb_SetItem_Patch
     {
-        public static bool Prefix(MessageEventManager __instance)
+        public static bool Prefix()
         {
             if (!Main.enabled || !Main.settings.daomu)
             {
@@ -1613,7 +1616,7 @@ namespace RobTomb
             }
             else
             {
-                if (__instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801440])
+                if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801440])
                 {
                     Main.safeitemId = ActorMenu.choseItemId;
                     ui_MessageWindow.Instance.CloseItemsWindow();
@@ -1747,6 +1750,11 @@ namespace RobTomb
                                 Main.LetHeLeave();
                                 return false;
                             }
+                        case 199820:
+                            {
+                                Main.baolu = true;
+                                return false;
+                            }
                     }
                     return true;
                 }
@@ -1847,7 +1855,7 @@ namespace RobTomb
                 DateFile.instance.actorsDate[num][20] = Mathf.Clamp(10-zoobielevel,1,9).ToString();
                 DateFile.instance.actorsDate[num][8] = "3";
                 DateFile.instance.actorsDate[num][706] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][706])+5000*zoobielevel).ToString();
-                DateFile.instance.actorsDate[num][901] = (zoobielevel * 3).ToString();
+                DateFile.instance.actorsDate[num][901] = "0" ;// (zoobielevel * 3).ToString();
                 DateFile.instance.actorsDate[num][81] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][81])+ 1000* zoobielevel).ToString();
                 DateFile.instance.actorsDate[num][82] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][82]) +1000* zoobielevel).ToString();
                 DateFile.instance.actorsDate[num][71] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][71]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel-5,1,7)).ToString();
@@ -1932,26 +1940,44 @@ namespace RobTomb
                 }
                 DateFile.instance.MakeNewActorGongFa(num, true);
                 int item = RobTomb_LoadData.id["Item_Date"][20000];
-                DateFile.instance.actorsDate[num][201] = (item+Mathf.Clamp(zoobielevel-1,0,6)).ToString()+"&" + ((20-zoobielevel)/2).ToString();
+                DateFile.instance.actorsDate[num][201] = (item+Mathf.Clamp(zoobielevel-1,1,7)).ToString()+"&" + ((20-zoobielevel)/2).ToString();
                 DateFile.instance.MakeNewActorItem(num);
+
+                //fix weapon data
                 int weaponId = int.Parse(DateFile.instance.actorsDate[num][301]);
-                for(int i=0;i<6;i++)
+                int head = int.Parse(DateFile.instance.actorsDate[num][304]);
+                int body = int.Parse(DateFile.instance.actorsDate[num][306]);
+                int foot = int.Parse(DateFile.instance.actorsDate[num][307]);
+                for (int i=0;i<6;i++)
                 {
-                    DateFile.instance.ChangItemDate(weaponId, 71 + i, 500 * zoobielevel, true); 
+                    DateFile.instance.itemsDate[weaponId][71 + i] = (50 * zoobielevel*UnityEngine.Random.Range(80,121)/100).ToString(); 
                 }
-                DateFile.instance.ChangItemDate(weaponId,601,5000+2000 * zoobielevel, true);
-                DateFile.instance.ChangItemDate(weaponId, 603, 10000 + 2000 * zoobielevel, true);
-                DateFile.instance.ChangItemDate(weaponId,503, 4000 + 100 * zoobielevel, true);
-                if(!(DateFile.instance.itemsDate[weaponId].Keys).Contains(8))
-                {
-                    DateFile.instance.itemsDate[weaponId].Add(8, Mathf.Clamp(zoobielevel, 1, 9).ToString());
-                }
-                else
-                {
-                    DateFile.instance.itemsDate[weaponId][8]= Mathf.Clamp(zoobielevel, 1, 9).ToString();
-                }
-                Equipping equipping = new Equipping(true);
-                equipping.EquipSkillsAndItems(num, true, true);
+                DateFile.instance.itemsDate[weaponId][601] = (300+150 * zoobielevel* UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[head][601] = (400 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[body][601] = (600 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[foot][601] = (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+
+                DateFile.instance.itemsDate[weaponId][603] = (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[head][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[body][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[foot][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+
+                DateFile.instance.itemsDate[weaponId][902] = (20 +10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[head][902] = (20+ 10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[body][902] = (20 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                DateFile.instance.itemsDate[foot][902] = (10 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+
+                DateFile.instance.itemsDate[weaponId][901] = (int.Parse(DateFile.instance.itemsDate[weaponId][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
+                DateFile.instance.itemsDate[head][901] = (int.Parse(DateFile.instance.itemsDate[head][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
+                DateFile.instance.itemsDate[body][901] = (int.Parse(DateFile.instance.itemsDate[body][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
+                DateFile.instance.itemsDate[foot][901] = (int.Parse(DateFile.instance.itemsDate[foot][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
+
+                DateFile.instance.itemsDate[weaponId][503] = (400 + 10 * zoobielevel ).ToString();
+
+                DateFile.instance.itemsDate[weaponId][8]= Mathf.Clamp(zoobielevel, 1, 9).ToString();
+                DateFile.instance.itemsDate[head][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
+                DateFile.instance.itemsDate[body][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
+                DateFile.instance.itemsDate[foot][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
                 __result=num;
                 return false;
             }
@@ -1973,10 +1999,19 @@ namespace RobTomb
                 return true;
             }
             else if (DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false) == RobTomb_LoadData.id["PresetActor_Date"][2000].ToString())
-            {
-                if(range>60)
+            {               
+                if (range>60)
                 {
                     range = 60;
+
+                    StackTrace stackTrace = new StackTrace();
+                    foreach (var s in stackTrace.GetFrames())
+                    {
+                        if (s.GetMethod().Name == "Initialize")
+                        {
+                            return true;
+                        }
+                    }
                     BattleSystem.instance.ShowBattleState(RobTomb_LoadData.id["GongFaOtherFPower_Date"][20000], isActor);
                 }
             } 
@@ -2073,15 +2108,22 @@ namespace RobTomb
             }
         }
     }
-    
+    /*
+  
     [HarmonyPatch(typeof(BattleEndWindow), "SetupBattleEndEvent")]
     public class RobTomb_SetupBattleEndEvent_Patch
     {
-        public static bool Prefix()
+        public static void Prefix()
         {
+
+            StackTrace stackTrace = new StackTrace();
+            foreach(var s in stackTrace.GetFrames())
+            {
+                Main.Logger.Log(s.GetMethod().Name);
+            }
             if(!Main.enabled||!Main.settings.daomu)
             {
-                return true;
+                return ;
             }
             else
             {
@@ -2089,27 +2131,17 @@ namespace RobTomb
                 {
                  '&'
                 });
-                List<int> list = new List<int>(RobTomb_LoadData.id["Event_Date"].Values);
-                if (list.Contains(int.Parse(array[0])))
-                {
-
-                    if (int.Parse(array[0]) == RobTomb_LoadData.id["Event_Date"][1998025]) //恶战胜利逃走被暴露
-                        Main.baolu = true;
-                    int num2 =int.Parse(array[0]);
-                    DateFile.instance.battleEndEvent = true;
-                    DateFile.instance.SetEvent(new int[]
-                                    {
-                                    0,
-                                    MessageEventManager.Instance.MainEventData[1],
-                                    num2,
-                                    0
-                                    }, true, true);
-                    return false;
-                }
+                if (int.Parse(array[0]) == RobTomb_LoadData.id["Event_Date"][1998025]) //恶战胜利逃走被暴露
+                    Main.baolu = true;
+                DateFile.instance.ResetBattleDate();
+                AudioManager.instance.UpdatePlaceBGM(DateFile.instance.mianPartId, DateFile.instance.mianPlaceId);
+                UIState.BattleSystem.Back();
+                return;
             }         
-            return true;
+            return ;
         }
     }
+    */
 
     [HarmonyPatch(typeof(UIDate), "UpdateMaxDayTime")]
     public class RobTomb_UpdateMaxDayTime_Patch
@@ -2167,7 +2199,7 @@ namespace RobTomb
 
 
     [HarmonyPatch(typeof(BattleSystem), "UpdateBattlerMagicAndStrength")]
-    public class RobTom_UpdateBattlerMagicAndStrength_Patch
+    public class RobTomb_UpdateBattlerMagicAndStrength_Patch
     {
         public static MethodInfo UpdateMagic = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "UpdateMagic");
         public static MethodInfo UpdateStrength = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "UpdateStrength");
@@ -2215,7 +2247,7 @@ namespace RobTomb
     }
 
     [HarmonyPatch(typeof(BattleSystem), "ShowBaseGongFaState")]
-    public class RobTom_ShowBaseGongFaState_Patch
+    public class RobTomb_ShowBaseGongFaState_Patch
     {
         public static void Postfix(bool isActor,ref float __result, bool showState = true)
         {

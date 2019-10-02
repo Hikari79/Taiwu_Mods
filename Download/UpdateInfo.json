@@ -2,11 +2,10 @@
     {
         "modName": "RobTomb",
         "latestVersion": "2.1.1",
-        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.1.zip",
-		"updateInfo":"V2.1.1
-·适配游戏0.2.5.6
-·修复在mod未加载成功时（打开游戏就红字）无法自动更新/检测更新的bug
-·调整了僵尸的数据使之更符合游戏背景"
+        "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.2.zip",
+		"updateInfo":"V2.1.2
+·适配游戏0.2.6.7
+·设置中现在可以手动选择某一路径作为umm的路径（此前版本中umm路径默认为游戏根目录下，如果umm不是放在根目录下或许会下载失败需要手动更新）"
     },
     {
         "modName": "WeaponCostFix",

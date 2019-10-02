@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -12,6 +12,7 @@ using DG.Tweening;
 using UnityEngine.Networking;
 using AI;
 using System.Diagnostics;
+using GameData;
 
 namespace RobTomb
 {
@@ -24,24 +25,90 @@ namespace RobTomb
         public string amount;
         public bool noPoisonItem;
         public bool autoCheckUpdate;
+        public string ummPath;
         public override void Save(UnityModManager.ModEntry modEntry)
         {
             Save(this, modEntry);
         }
     }
 
-    public class ModDate
+    public class ModData
     {
-        public static Dictionary<int, Dictionary<int, string>> actorsDate = new Dictionary<int, Dictionary<int, string>>();
-        public static Dictionary<int, SortedDictionary<int, int[]>> actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
-        public static List<int> actorsDateKeys=new List<int> {79 };
-        public static List<int> actorsGongFasKeys=new List<int> { 20409 };
+        private static ModData _instance;
+        public static ModData Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    _instance = new ModData();
+                return _instance;
+            }
+            set
+            {
+                _instance = value;
+            }
+        }
+        public ModData()
+        {
+            actorsDate = new Dictionary<int, Dictionary<int, string>>();
+            actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
+        }
+        public Dictionary<int, Dictionary<int, string>> actorsDate;
+        public Dictionary<int, SortedDictionary<int, int[]>> actorsGongFas;
+
+        public string GetActorData(int actorID,int index)
+        {
+            if(actorsDate.TryGetValue(actorID,out Dictionary<int, string> dic))
+            {
+                if(dic.TryGetValue(index,out string result))
+                {
+                    return result;
+                }
+            }
+            throw new Exception($"盗墓笔记获取mod人物数据出错，actorID={actorID},key={index}");
+        }
+        public bool TryGetActorData(int actorID, int index,out string result)
+        {
+            if (actorsDate.TryGetValue(actorID, out Dictionary<int, string> dic))
+            {
+                if (dic.TryGetValue(index, out string s))
+                {
+                    result = s;
+                    return true;
+                }
+            }
+            result = string.Empty;
+            return false;
+        }
+
+        public void SetActorData(int actorID,int key,string value)
+        {
+            if(actorsDate.TryGetValue(actorID,out Dictionary<int, string> dic))
+            {
+                actorsDate[actorID][key] = value;
+                return;
+            }
+            actorsDate.Add(actorID, new Dictionary<int, string>());
+            actorsDate[actorID][key] = value;
+        }
+        
+        public void SetGameActorData(int actorID,int key,string value,bool add)
+        {
+            if(add)
+            {
+                string s = Characters.GetCharProperty(actorID, key);
+                Characters.SetCharProperty(actorID, key, (int.Parse(value) + int.Parse(s)).ToString());
+                return;
+            }
+            Characters.SetCharProperty(actorID, key, value);
+
+        }
     }
 
 
     public static class Main
     {
-        public static bool enabled;
+        public static bool enabled = false;
         public static Settings settings;
         public static UnityModManager.ModEntry.ModLogger Logger;
         public static int round = 0;                 //盗墓轮数
@@ -103,7 +170,6 @@ namespace RobTomb
         public static int baseGongId = 0;                                                                                        //当前地点归属，0：野外，1-15：各大门派，其余：村庄
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
-
             settings = Settings.Load<Settings>(modEntry);
             Logger = modEntry.Logger;
             string resdir = System.IO.Path.Combine(modEntry.Path, "Data");
@@ -112,9 +178,9 @@ namespace RobTomb
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
-            if (settings.autoCheckUpdate)
-                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
 
+            if (settings.autoCheckUpdate)
+                AutoUpdate.Instance.CheckUpdate(modEntry);
             var harmony = HarmonyInstance.Create(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             return true;
@@ -153,7 +219,7 @@ namespace RobTomb
                 myStyle.fontSize = 22;
                 GUILayout.Label("<color=#E4504DFF>正常版\n设定集：\n1.基础成功率由你谋划所花时间与人物聪颖程度决定\n2.门派驻地内的墓受到保护，墓主人生前地位越高则保护越严密\n3.同格内墓主人的友人越多，越有可能盗墓失败\n4.坚毅能够提升进入疲惫状态前最大的盗墓次数，以及提供中毒和受伤的减免\n5.细腻越高越容易在墓中找到墓主人的物品和资源\n6.水性越高，越容易找到珍稀物品；福源越高，获得的珍稀物品的品级越高\n7.还有些隐藏设定就暂且不表了~</color>", myStyle);
             }
-            AutoUpdate.AutoUpdate.OnGUI(modEntry,ref settings.autoCheckUpdate);
+            AutoUpdate.Instance.OnGUI(modEntry,ref settings.autoCheckUpdate);
         }
 
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)
@@ -589,9 +655,9 @@ namespace RobTomb
                 {
                     if (DateFile.instance.GetGongFaLevel(actorId, gongFaId, 0) >= 100 && DateFile.instance.GetGongFaFLevel(actorId, gongFaId, false)>= 10)
                     {
-                        DateFile.instance.actorsDate[actorId][gongfazizhi] = (int.Parse(DateFile.instance.actorsDate[actorId][gongfazizhi]) + 20).ToString();
+                        Characters.SetCharProperty(actorId, gongfazizhi, (int.Parse(Characters.GetCharProperty(actorId,gongfazizhi))+20).ToString());
                         TipsWindow.instance.SetTips(0, new string[] { "（太吾对应的资质上升了……）" }, 200);
-                        DateFile.instance.actorsDate[dieActorId][79] = "0";
+                        ModData.Instance.SetActorData(dieActorId, 79, "0");
                         Main.EndToEvent(199801613);
                         return;
                     }
@@ -616,7 +682,7 @@ namespace RobTomb
                 DateFile.instance.ChangeActorGongFa(actorId, gongFaId, 25, rand, badlevel, false);
                 DateFile.instance.ChangeMianQi(actorId, 100 * int.Parse(DateFile.instance.gongFaDate[gongFaId][2]) * badlevel, 5);
                 if(badlevel!=0) TipsWindow.instance.SetTips(0, new string[] { "你渐渐有了些异样的体悟......" }, 200);
-                DateFile.instance.actorsDate[dieActorId][79] = "0";
+                ModData.Instance.SetActorData(dieActorId, 79, "0");
                 EndToEvent(199801611);
             }
         }
@@ -641,9 +707,9 @@ namespace RobTomb
                 int jiyi = int.Parse(DateFile.instance.skillDate[gongFaId][3]);
                 if(DateFile.instance.GetSkillLevel(gongFaId)>=100&& DateFile.instance.GetSkillFLevel(gongFaId)>=10)
                 {
-                    DateFile.instance.actorsDate[actorId][501 + jiyi] = (int.Parse(DateFile.instance.actorsDate[actorId][501+jiyi]) + 20).ToString();
+                    Characters.SetCharProperty(actorId, 501 + jiyi, (int.Parse(Characters.GetCharProperty(actorId, 501 + jiyi)) + 20).ToString());
                     TipsWindow.instance.SetTips(0, new string[] { "（太吾对应的资质上升了……）" }, 200);
-                    DateFile.instance.actorsDate[dieActorId][79] = "0";
+                    ModData.Instance.SetActorData(dieActorId, 79, "0");
                     EndToEvent(199801713);
                     return;
                 }
@@ -657,7 +723,7 @@ namespace RobTomb
                     }
                 }
                 DateFile.instance.ChangeMianSkill(gongFaId, 25, rand, false);
-                DateFile.instance.actorsDate[dieActorId][79] = "0";
+                ModData.Instance.SetActorData(dieActorId, 79, "0");
                 EndToEvent(199801711);
             }
         }
@@ -909,7 +975,7 @@ namespace RobTomb
             }
             for (int k = 0; k < 7; k++)
             {
-                DateFile.instance.actorsDate[actorId].Remove(401 + k);
+                Characters.RemoveCharProperty(actorId, 401 + k);
             }
             DateFile.instance.MoveOutPlace(actorId);
         }
@@ -947,7 +1013,7 @@ namespace RobTomb
             Main.hasKill = true;
             if(int.Parse(DateFile.instance.GetActorDate(num,8,false))==1)
             {
-                DateFile.instance.actorsDate[num][12] = "0";
+                Characters.SetCharProperty(num, 12, "0");
                 PeopleLifeAI.instance.AISetMassage(95, num, DateFile.instance.mianPartId, DateFile.instance.mianPlaceId, null, -1, true);
                 DateFile.instance.RemoveActor(new List<int>
                  {
@@ -975,7 +1041,7 @@ namespace RobTomb
             int partId = WorldMapSystem.instance.choosePartId;
             int placeId = WorldMapSystem.instance.choosePlaceId;
             int actorId = DateFile.instance.MianActorID();
-            int gangId = int.Parse(DateFile.instance.actorsDate[dieActorId][19]);
+            int gangId = int.Parse(Characters.GetCharProperty(dieActorId, 19));
             int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
             int[] actorResources = DateFile.instance.GetActorResources(actorId);
             int jilv;
@@ -1071,15 +1137,14 @@ namespace RobTomb
                 if (text!="")
                     TipsWindow.instance.SetTips(0, new string[] { text }, 200);
                 //判定是否被挖过秘籍
-                string num;
                 bool hasgongfa = true;
-                if (DateFile.instance.actorsDate[dieActorId].TryGetValue(79, out num))
+                if (ModData.Instance.TryGetActorData(dieActorId,79,out string num))
                 {
                     if (int.Parse(num) != 1) hasgongfa = false;
                 }
                 else
                 {
-                    DateFile.instance.actorsDate[dieActorId].Add(79, "1");
+                    ModData.Instance.SetActorData(dieActorId, 79, "1");
                 }
                 //古冢遗刻
                 if(UnityEngine.Random.Range(0, 100) < 70 + actorResources[0] && Main.dieActorId % 5==0 && hasgongfa && level>=7&&!hasWaived)
@@ -1136,11 +1201,11 @@ namespace RobTomb
                 }
                 hasWaived = false;
                 //挖到一个粽子
-                if (UnityEngine.Random.Range(0, 100) < 5 || int.Parse(DateFile.instance.actorsDate[dieActorId][79]) == 2)
+                if (UnityEngine.Random.Range(0, 100) < 5 || int.Parse(ModData.Instance.GetActorData(dieActorId,79)) == 2)
                 {
                     MessageEventManager.Instance.MainEventData[1] = RobTomb_LoadData.id["PresetActor_Date"][2000];
                     Main.Logger.Log(MessageEventManager.Instance.MainEventData[1].ToString());
-                    DateFile.instance.actorsDate[dieActorId][79]="2";
+                    ModData.Instance.SetActorData(dieActorId, 79, "2");
                     EndToEvent (1998023);
                     return;
                 }
@@ -1435,7 +1500,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                if (DateFile.instance.actorsDate[id].ContainsKey(79))
+                                if (ModData.Instance.TryGetActorData(id,79,out string s))
                                 {
                                     dieActors.Add(id);
                                 }
@@ -1446,7 +1511,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                if (!DateFile.instance.actorsDate[id].ContainsKey(79))
+                                if (!ModData.Instance.TryGetActorData(id, 79, out string s))
                                 {
                                     dieActors.Add(id);
                                 }
@@ -1457,8 +1522,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                string s;
-                                if (DateFile.instance.actorsDate[id].TryGetValue(79,out s))
+                                if (ModData.Instance.TryGetActorData(id, 79, out string s))
                                 {
                                      if(int.Parse(s)==2)
                                          dieActors.Add(id);
@@ -1851,18 +1915,19 @@ namespace RobTomb
                 {
                     DoActorMake.Invoke(DateFile.instance, new object[] { baseActorId, num, makeNewFeatures, 0, 0, age, attrValue, skillValue, gongFaValue, resourceValue, baseCharm, null, null, randObbs, 0, 0 });
                 }
+
                 DateFile.instance.MakeActorName(num, int.Parse(DateFile.instance.GetActorDate(num, 29, false)), DateFile.instance.GetActorDate(num, 5, false), true);
-                DateFile.instance.actorsDate[num][20] = Mathf.Clamp(10-zoobielevel,1,9).ToString();
-                DateFile.instance.actorsDate[num][8] = "3";
-                DateFile.instance.actorsDate[num][706] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][706])+5000*zoobielevel).ToString();
-                DateFile.instance.actorsDate[num][901] = "0" ;// (zoobielevel * 3).ToString();
-                DateFile.instance.actorsDate[num][81] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][81])+ 1000* zoobielevel).ToString();
-                DateFile.instance.actorsDate[num][82] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][82]) +1000* zoobielevel).ToString();
-                DateFile.instance.actorsDate[num][71] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][71]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel-5,1,7)).ToString();
-                DateFile.instance.actorsDate[num][72] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][72]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel - 5, 1, 7)).ToString();
-                DateFile.instance.actorsDate[num][73] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][73]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel - 5, 1, 7)).ToString();
-                DateFile.instance.actorsDate[num][32] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][32])  + zoobielevel * 500).ToString();
-                DateFile.instance.actorsDate[num][33] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][33])  + zoobielevel * 500).ToString();
+                Characters.SetCharProperty(num,20,Mathf.Clamp(10-zoobielevel,1,9).ToString());
+                Characters.SetCharProperty(num, 8, "3");
+                Characters.SetCharProperty(num, 706, (int.Parse(DateFile.instance.presetActorDate[baseActorId][706])+5000*zoobielevel).ToString());
+                Characters.SetCharProperty(num,901,"0" );// (zoobielevel * 3).ToString();
+                Characters.SetCharProperty(num,81, (int.Parse(DateFile.instance.presetActorDate[baseActorId][81])+ 1000* zoobielevel).ToString());
+                Characters.SetCharProperty(num,82, (int.Parse(DateFile.instance.presetActorDate[baseActorId][82]) +1000* zoobielevel).ToString());
+                Characters.SetCharProperty(num,71, (int.Parse(DateFile.instance.presetActorDate[baseActorId][71]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel-5,1,7)).ToString());
+                Characters.SetCharProperty(num,72, (int.Parse(DateFile.instance.presetActorDate[baseActorId][72]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel - 5, 1, 7)).ToString());
+                Characters.SetCharProperty(num,73, (int.Parse(DateFile.instance.presetActorDate[baseActorId][73]) + 50 * zoobielevel* Mathf.Clamp(zoobielevel - 5, 1, 7)).ToString());
+                Characters.SetCharProperty(num,32, (int.Parse(DateFile.instance.presetActorDate[baseActorId][32])  + zoobielevel * 500).ToString());
+                Characters.SetCharProperty(num,33, (int.Parse(DateFile.instance.presetActorDate[baseActorId][33])  + zoobielevel * 500).ToString());
 
                 int num7 = int.Parse(DateFile.instance.presetActorDate[baseActorId][1101]);
                 int num8 = int.Parse(DateFile.instance.presetActorDate[baseActorId][1102]);
@@ -1873,32 +1938,33 @@ namespace RobTomb
                 int num13 = int.Parse(DateFile.instance.presetActorDate[baseActorId][1111]);
                 if (num7 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1101] = (100 + (num7 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1101, (100 + (num7 - 100) * zoobielevel).ToString());
                 }
                 if (num8 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1102] = (100 + (num8 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1102, (100 + (num8 - 100) * zoobielevel).ToString());
                 }
                 if (num9 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1106] = (100 + (num9 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1106, (100 + (num9 - 100) * zoobielevel).ToString());
                 }
                 if (num10 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1107] = (100 + (num10 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1107, (100 + (num10 - 100) * zoobielevel).ToString());
                 }
                 if (num11 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1108] = (100 + (num11 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1108, (100 + (num11 - 100) * zoobielevel).ToString());
                 }
                 if (num12 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1109] = (100 + (num12 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1109, (100 + (num12 - 100) * zoobielevel).ToString());
                 }
                 if (num13 > 100)
                 {
-                    DateFile.instance.actorsDate[num][1111] = (100 + (num13 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,1111, (100 + (num13 - 100) * zoobielevel).ToString());
                 }
+
                 int num14 = int.Parse(DateFile.instance.presetActorDate[baseActorId][92]);
                 int num15 = int.Parse(DateFile.instance.presetActorDate[baseActorId][93]);
                 int num16 = int.Parse(DateFile.instance.presetActorDate[baseActorId][94]);
@@ -1908,76 +1974,76 @@ namespace RobTomb
                 int num20 = int.Parse(DateFile.instance.presetActorDate[baseActorId][98]);
                 if (num14 > 100)
                 {
-                    DateFile.instance.actorsDate[num][92] = (100 + (num14 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,92, (100 + (num14 - 100) * zoobielevel).ToString());
                 }
                 if (num15 > 100)
                 {
-                    DateFile.instance.actorsDate[num][93] = (100 + (num15 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,93, (100 + (num15 - 100) * zoobielevel).ToString());
                 }
                 if (num16 > 100)
                 {
-                    DateFile.instance.actorsDate[num][94] = (100 + (num16 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num, 94, (100 + (num16 - 100) * zoobielevel).ToString()) ;
                 }
                 if (num17 > 100)
                 {
-                    DateFile.instance.actorsDate[num][95] = (100 + (num17 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,95,(100 + (num17 - 100) * zoobielevel).ToString());
                 }
                 if (num18 > 100)
                 {
-                    DateFile.instance.actorsDate[num][96] = (100 + (num18 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,96, (100 + (num18 - 100) * zoobielevel).ToString());
                 }
                 if (num19 > 100)
                 {
-                    DateFile.instance.actorsDate[num][97] = (100 + (num19 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,97, (100 + (num19 - 100) * zoobielevel).ToString());
                 }
                 if (num20 > 100)
                 {
-                    DateFile.instance.actorsDate[num][98] = (100 + (num20 - 100) * zoobielevel).ToString();
+                    Characters.SetCharProperty(num,98, (100 + (num20 - 100) * zoobielevel).ToString());
                 }
                 for(int i=0;i<6;i++)
                 {
-                    DateFile.instance.actorsDate[num][61+i] = (int.Parse(DateFile.instance.presetActorDate[baseActorId][61+i])*zoobielevel).ToString();
+                    Characters.SetCharProperty(num,61+i,(int.Parse(DateFile.instance.presetActorDate[baseActorId][61+i])*zoobielevel).ToString());
                 }
                 DateFile.instance.MakeNewActorGongFa(num, true);
                 int item = RobTomb_LoadData.id["Item_Date"][20000];
-                DateFile.instance.actorsDate[num][201] = (item+Mathf.Clamp(zoobielevel-1,1,7)).ToString()+"&" + ((20-zoobielevel)/2).ToString();
+                Characters.SetCharProperty(num,201, (item+Mathf.Clamp(zoobielevel-1,1,7)).ToString()+"&" + ((20-zoobielevel)/2).ToString());
                 DateFile.instance.MakeNewActorItem(num);
 
                 //fix weapon data
-                int weaponId = int.Parse(DateFile.instance.actorsDate[num][301]);
-                int head = int.Parse(DateFile.instance.actorsDate[num][304]);
-                int body = int.Parse(DateFile.instance.actorsDate[num][306]);
-                int foot = int.Parse(DateFile.instance.actorsDate[num][307]);
+                int weaponId = int.Parse(Characters.GetCharProperty(num,301));
+                int head = int.Parse(Characters.GetCharProperty(num,304));
+                int body = int.Parse(Characters.GetCharProperty(num,306));
+                int foot = int.Parse(Characters.GetCharProperty(num,307));
                 for (int i=0;i<6;i++)
-                {
-                    DateFile.instance.itemsDate[weaponId][71 + i] = (50 * zoobielevel*UnityEngine.Random.Range(80,121)/100).ToString(); 
+                {                 
+                    Items.SetItemProperty(weaponId,71 + i, (50 * zoobielevel*UnityEngine.Random.Range(80,121)/100).ToString()); 
                 }
-                DateFile.instance.itemsDate[weaponId][601] = (300+150 * zoobielevel* UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[head][601] = (400 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[body][601] = (600 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[foot][601] = (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                Items.SetItemProperty(weaponId,601, (300+150 * zoobielevel* UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(head,601, (400 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(body,601, (600 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(foot,601, (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
 
-                DateFile.instance.itemsDate[weaponId][603] = (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[head][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[body][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[foot][603] = (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                Items.SetItemProperty(weaponId,603, (500 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(head,603, (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(body,603, (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(foot,603, (200 + 150 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
 
-                DateFile.instance.itemsDate[weaponId][902] = (20 +10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[head][902] = (20+ 10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[body][902] = (20 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
-                DateFile.instance.itemsDate[foot][902] = (10 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString();
+                Items.SetItemProperty(weaponId,902, (20 +10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(head,902, (20+ 10 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(body,902, (20 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
+                Items.SetItemProperty(foot,902, (10 + 15 * zoobielevel * UnityEngine.Random.Range(80, 121) / 100).ToString());
 
-                DateFile.instance.itemsDate[weaponId][901] = (int.Parse(DateFile.instance.itemsDate[weaponId][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
-                DateFile.instance.itemsDate[head][901] = (int.Parse(DateFile.instance.itemsDate[head][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
-                DateFile.instance.itemsDate[body][901] = (int.Parse(DateFile.instance.itemsDate[body][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
-                DateFile.instance.itemsDate[foot][901] = (int.Parse(DateFile.instance.itemsDate[foot][902]) * UnityEngine.Random.Range(60, 101) / 100).ToString();
+                Items.SetItemProperty(weaponId,901, (int.Parse(Items.GetItemProperty(weaponId,902)) * UnityEngine.Random.Range(60, 101) / 100).ToString());
+                Items.SetItemProperty(head,901, (int.Parse(Items.GetItemProperty(head,902)) * UnityEngine.Random.Range(60, 101) / 100).ToString());
+                Items.SetItemProperty(body,901, (int.Parse(Items.GetItemProperty(body,902)) * UnityEngine.Random.Range(60, 101) / 100).ToString());
+                Items.SetItemProperty(foot,901, (int.Parse(Items.GetItemProperty(foot,902)) * UnityEngine.Random.Range(60, 101) / 100).ToString());
 
-                DateFile.instance.itemsDate[weaponId][503] = (400 + 10 * zoobielevel ).ToString();
+                Items.SetItemProperty(weaponId,503, (400 + 10 * zoobielevel ).ToString());
 
-                DateFile.instance.itemsDate[weaponId][8]= Mathf.Clamp(zoobielevel, 1, 9).ToString();
-                DateFile.instance.itemsDate[head][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
-                DateFile.instance.itemsDate[body][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
-                DateFile.instance.itemsDate[foot][8] = Mathf.Clamp(zoobielevel, 1, 9).ToString();
+                Items.SetItemProperty(weaponId,8, Mathf.Clamp(zoobielevel, 1, 9).ToString());
+                Items.SetItemProperty(head,8, Mathf.Clamp(zoobielevel, 1, 9).ToString());
+                Items.SetItemProperty(body,8, Mathf.Clamp(zoobielevel, 1, 9).ToString());
+                Items.SetItemProperty(foot,8, Mathf.Clamp(zoobielevel, 1, 9).ToString());
                 __result=num;
                 return false;
             }

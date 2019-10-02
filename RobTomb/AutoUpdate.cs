@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using UnityModManagerNet;
 using UnityEngine.Networking;
@@ -8,8 +8,10 @@ using UnityEngine.Events;
 using Newtonsoft.Json;
 using System.IO;
 using Harmony12;
+using System.Runtime.InteropServices;
+using System.Threading;
 
-namespace AutoUpdate
+namespace RobTomb
 {
     public class AutoUpdate
     {
@@ -17,15 +19,43 @@ namespace AutoUpdate
         {
             initial, networkError, checkUpdateing, updating, httpError, needUpdate, newest, error, updateSuccessfully
         }
-        public static AutoUpdate instance;
-        public static UpdateInfo updateInfo;
-        private static string output = string.Empty;
-        private static string checkUpdateUrl = "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/UpdateInfo.json";
-        private static string downloadUrl = "";
-        private static UnityWebRequest www;
-        public static Status status = Status.initial;
+        private static AutoUpdate _instance;
+        public static AutoUpdate Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    _instance = new AutoUpdate();
+                return _instance;
+            }
+        }
 
-        public static void OnGUI(UnityModManager.ModEntry modEntry, ref bool autoCheckUpdate)
+
+
+        public UpdateInfo updateInfo;
+        private string ouput;
+        private readonly string checkUpdateUrl = "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/UpdateInfo.json";
+        private string downloadUrl;
+        private UnityWebRequest www;
+        private Thread _thread;
+        private Thread Thread
+        {
+            get
+            {
+                if (_thread == null)
+                    _thread = new Thread(new ThreadStart(GetWindow));
+                if(_thread.IsAlive)
+                {
+                    _thread.Abort();
+                    Main.Logger.Log("结束线程");
+                }
+                _thread = new Thread(new ThreadStart(GetWindow));
+                return _thread;
+            }
+        }
+        public Status status = Status.initial;
+
+        public void OnGUI(UnityModManager.ModEntry modEntry, ref bool autoCheckUpdate)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("更新设置:");
@@ -33,89 +63,137 @@ namespace AutoUpdate
             GUILayout.EndHorizontal();
             autoCheckUpdate = GUILayout.Toggle(autoCheckUpdate, "启动时自动检测更新");
             GUILayout.BeginHorizontal();
+            if (GUILayout.Button((string.IsNullOrEmpty(Main.settings.ummPath)) ? "设置umm安装地址" : "当前设定的umm路径为:"+Main.settings.ummPath))
+            {
+                Thread.Start();
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("检查更新"))
             {
                 CheckUpdate(modEntry);
             }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
-            switch (status)
+            switch (Instance.status)
             {
                 case Status.networkError:
-                    output = "network error,请检查网络连接";
+                    Instance.ouput = "network error,请检查网络连接";
                     break;
                 case Status.checkUpdateing:
-                    output = $"正在检测更新,{www.downloadProgress * 100}%已完成";
+                    Instance.ouput = $"正在检测更新,{Instance.www.downloadProgress * 100}%已完成";
                     break;
                 case Status.error:
                     break;
                 case Status.needUpdate:
-                    output = "有可用更新\n";
-                    output += updateInfo.updateInfo;
+                    Instance.ouput = "有可用更新\n";
+                    Instance.ouput += Instance.updateInfo.updateInfo;
                     break;
                 case Status.httpError:
-                    output = "httperror.";
+                    Instance.ouput = "httperror.";
                     break;
                 case Status.newest:
-                    output = "当前已是最新版本";
+                    Instance.ouput = "当前已是最新版本";
                     break;
                 case Status.updating:
-                    output = $"正在下载更新中,{www.downloadProgress * 100}%已完成";
+                    Instance.ouput = $"正在下载更新中,已完成{Instance.www.downloadProgress * 100}%";
                     break;
                 case Status.updateSuccessfully:
-                    output = "下载更新包成功，请关闭游戏用umm更新至最新版本";
+                    Instance.ouput = "下载更新包成功，请关闭游戏用umm更新至最新版本";
                     break;
             }
-            if (output != string.Empty)
-                GUILayout.Label(output);
+            if (Instance.ouput != string.Empty)
+                GUILayout.Label(Instance.ouput);
             GUILayout.BeginHorizontal();
-            if (status == Status.needUpdate)
+            if (Instance.status == Status.needUpdate)
             {
                 if (GUILayout.Button("更新"))
                 {
-                    DateFile.instance.StartCoroutine(Update(modEntry, downloadUrl));
+                    if (isPathCorrect())
+                    {
+                        DateFile.instance.StartCoroutine(Update(modEntry, Instance.downloadUrl));
+                    }
+                    else
+                    {
+                        Thread.Start();
+                    }
                 }
                 GUILayout.FlexibleSpace();
             }
             GUILayout.EndHorizontal();
         }
 
-        public static void CheckUpdate(UnityModManager.ModEntry modEntry)
+
+        private bool isPathCorrect()
         {
-            status = Status.checkUpdateing;
-            if (!UnityModManager.HasNetworkConnection())
+            if(Directory.Exists(Path.Combine(Environment.CurrentDirectory, "UnityModManager", "The Scroll Of Taiwu")))
             {
-                status = Status.networkError;
-                return;
+                Main.settings.ummPath = Path.Combine(Environment.CurrentDirectory, "UnityModManager");
+                return true;
             }
-            SingletonObject.getInstance<YieldHelper>().StartYield(HasNewerVersion(modEntry, checkUpdateUrl));
+            if (string.IsNullOrEmpty(Main.settings.ummPath))
+                return false;
+            if (!Directory.Exists(Main.settings.ummPath))
+                return false;
+            if (!Directory.Exists(Path.Combine(Main.settings.ummPath, "The Scroll Of Taiwu")))
+                return false;
+            return true;
         }
 
-        private static IEnumerator HasNewerVersion(UnityModManager.ModEntry modEntry, string url)
+        private void GetWindow()
         {
-            www = UnityWebRequest.Get(url);
-            www.timeout = 100;
-            yield return www.SendWebRequest();
-            if (www.isNetworkError || www.isHttpError)
+            OpenDialogDir ofn2 = new OpenDialogDir();
+            ofn2.pszDisplayName = new string(new char[2000]); ;     // 存放目录路径缓冲区  
+            ofn2.lpszTitle ="请手动选择umm路径";// 标题  
+                                            //ofn2.ulFlags = BIF_NEWDIALOGSTYLE | BIF_EDITBOX; // 新的样式,带编辑框  
+            IntPtr pidlPtr = DllOpenFileDialog.SHBrowseForFolder(ofn2);
+
+            char[] charArray = new char[2000];
+            for (int i = 0; i < 2000; i++)
+                charArray[i] = '\0';
+
+            DllOpenFileDialog.SHGetPathFromIDList(pidlPtr, charArray);
+            string fullDirPath = new String(charArray);
+            Main.settings.ummPath = fullDirPath.Substring(0, fullDirPath.IndexOf('\0'));
+        }
+
+        public void CheckUpdate(UnityModManager.ModEntry modEntry)
+        {
+            Instance.status = Status.checkUpdateing;
+            if (!UnityModManager.HasNetworkConnection())
             {
-                status = Status.httpError;
+                Instance.status = Status.networkError;
+                return;
+            }
+            SingletonObject.getInstance<YieldHelper>().StartYield(HasNewerVersion(modEntry, Instance.checkUpdateUrl));
+        }
+
+        private IEnumerator HasNewerVersion(UnityModManager.ModEntry modEntry, string url)
+        {
+            Instance.www = UnityWebRequest.Get(url);
+            Instance.www.timeout = 100;
+            yield return Instance.www.SendWebRequest();
+            if (Instance.www.isNetworkError || Instance.www.isHttpError)
+            {
+                Instance.status = Status.httpError;
             }
             else
             {
-                updateInfo = ParseJson(www.downloadHandler.text, modEntry.Info.Id);
-                if (VersionCompare(modEntry.Info.Version, updateInfo.latestVersion))
+                Instance.updateInfo = ParseJson(Instance.www.downloadHandler.text, modEntry.Info.Id);
+                if (VersionCompare(modEntry.Info.Version, Instance.updateInfo.latestVersion))
                 {
-                    downloadUrl = updateInfo.downLoadUrl;
-                    status = Status.needUpdate;
-                    modEntry.NewestVersion = new Version(updateInfo.latestVersion);
+                    Instance.downloadUrl = Instance.updateInfo.downLoadUrl;
+                    Instance.status = Status.needUpdate;
+                    modEntry.NewestVersion = new Version(Instance.updateInfo.latestVersion);
                 }
-                else if (status != Status.error)
+                else if (Instance.status != Status.error)
                 {
-                    status = Status.newest;
+                    Instance.status = Status.newest;
                 }
             }
         }
-        private static bool VersionCompare(string str1, string str2)
+        private bool VersionCompare(string str1, string str2)
         {
             try
             {
@@ -132,13 +210,13 @@ namespace AutoUpdate
             }
             catch (Exception e)
             {
-                status = Status.error;
-                output = e.Message;
+                Instance.status = Status.error;
+                Instance.ouput = e.Message;
                 return false;
             }
 
         }
-        private static UpdateInfo ParseJson(string json, string modName)
+        private UpdateInfo ParseJson(string json, string modName)
         {
             UpdateInfo[] updateInfos = JsonConvert.DeserializeObject<UpdateInfo[]>(json);
             foreach (var updateinfo in updateInfos)
@@ -146,29 +224,29 @@ namespace AutoUpdate
                 if (updateinfo.modName == modName)
                     return updateinfo;
             }
-            status = Status.error;
-            output = "无此mod资料";
+            Instance.status = Status.error;
+            Instance.ouput = "无此mod资料";
             return new UpdateInfo("modname", "0.0.0", "","");
         }
 
-        public static IEnumerator Update(UnityModManager.ModEntry modEntry, string url)
+        public IEnumerator Update(UnityModManager.ModEntry modEntry, string url)
         {
-            www = UnityWebRequest.Get(url);
-            www.timeout = 100;
-            status = Status.updating;
-            yield return www.SendWebRequest();
-            if (www.isNetworkError || www.isHttpError)
+            Instance.www = UnityWebRequest.Get(url);
+            Instance.www.timeout = 100;
+            Instance.status = Status.updating;
+            yield return Instance.www.SendWebRequest();
+            if (Instance.www.isNetworkError || Instance.www.isHttpError)
             {
-                status = Status.httpError;
+                Instance.status = Status.httpError;
             }
             else
             {
-                string[] name = downloadUrl.Split('/');
-                using (FileStream fileStream = new FileStream(Path.Combine(Environment.CurrentDirectory, "UnityModManager", "The Scroll Of Taiwu", modEntry.Info.Id, name[name.Length - 1]), FileMode.Create))
+                string[] name = Instance.downloadUrl.Split('/');
+                using (FileStream fileStream = new FileStream(Path.Combine(Main.settings.ummPath, "The Scroll Of Taiwu", modEntry.Info.Id, name[name.Length - 1]), FileMode.Create))
                 {
-                    fileStream.Write(www.downloadHandler.data, 0, www.downloadHandler.data.Length);
+                    fileStream.Write(Instance.www.downloadHandler.data, 0, Instance.www.downloadHandler.data.Length);
                 }
-                status = Status.updateSuccessfully;
+                Instance.status = Status.updateSuccessfully;
             }
         }
     }
@@ -186,5 +264,62 @@ namespace AutoUpdate
             downLoadUrl = url;
             this.updateInfo = updateinfo;
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+
+    public class OpenDialogFile
+    {
+        public int structSize = 0;
+        public IntPtr dlgOwner = IntPtr.Zero;
+        public IntPtr instance = IntPtr.Zero;
+        public String filter = null;
+        public String customFilter = null;
+        public int maxCustFilter = 0;
+        public int filterIndex = 0;
+        public String file = null;
+        public int maxFile = 0;
+        public String fileTitle = null;
+        public int maxFileTitle = 0;
+        public String initialDir = null;
+        public String title = null;
+        public int flags = 0;
+        public short fileOffset = 0;
+        public short fileExtension = 0;
+        public String defExt = null;
+        public IntPtr custData = IntPtr.Zero;
+        public IntPtr hook = IntPtr.Zero;
+        public String templateName = null;
+        public IntPtr reservedPtr = IntPtr.Zero;
+        public int reservedInt = 0;
+        public int flagsEx = 0;
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public class OpenDialogDir
+    {
+        public IntPtr hwndOwner = IntPtr.Zero;
+        public IntPtr pidlRoot = IntPtr.Zero;
+        public String pszDisplayName = null;
+        public String lpszTitle = null;
+        public UInt32 ulFlags = 0;
+        public IntPtr lpfn = IntPtr.Zero;
+        public IntPtr lParam = IntPtr.Zero;
+        public int iImage = 0;
+    }
+
+    public class DllOpenFileDialog
+    {
+        [DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+        public static extern bool GetOpenFileName([In, Out] OpenDialogFile ofn);
+
+        [DllImport("Comdlg32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+        public static extern bool GetSaveFileName([In, Out] OpenDialogFile ofn);
+
+        [DllImport("shell32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr SHBrowseForFolder([In, Out] OpenDialogDir ofn);
+
+        [DllImport("shell32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+        public static extern bool SHGetPathFromIDList([In] IntPtr pidl, [In, Out] char[] fileName);
+
     }
 }

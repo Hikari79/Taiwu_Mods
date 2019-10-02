@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Harmony12;
 using System.IO;
 using System.Collections.Generic;
@@ -27,6 +27,8 @@ namespace RobTomb
             },
             {"Event_Date",new Dictionary<string, int[]>{{"EnemyTeam_Date",new int[] {8} }} }
         };
+        public static List<int> actorsDateKeys = new List<int> { 79 };
+        public static List<int> actorsGongFasKeys = new List<int> { 20409 };
     }
 
     /// <summary>
@@ -276,9 +278,10 @@ namespace RobTomb
                 string s;
                 if (temp.TryGetValue("actorsDate", out s))
                 {
-                    ModDate.actorsDate = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<int, string>>>(s);
-                    if (ModDate.actorsDate == null)
-                        ModDate.actorsDate = new Dictionary<int, Dictionary<int, string>>();
+                    ModData.Instance.actorsDate = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<int, string>>>(s);
+                    if (ModData.Instance.actorsDate == null)
+                        ModData.Instance.actorsDate = new Dictionary<int, Dictionary<int, string>>();
+                    /*
                     foreach(var actorDate in ModDate.actorsDate)
                     {
                         if(DateFile.instance.actorsDate.ContainsKey(actorDate.Key))
@@ -287,15 +290,16 @@ namespace RobTomb
                                 DateFile.instance.actorsDate[actorDate.Key][kv.Key] = kv.Value;
                         }
                     }
+                    */
                 }
                 else
-                    ModDate.actorsDate = new Dictionary<int, Dictionary<int, string>>();
+                    ModData.Instance.actorsDate = new Dictionary<int, Dictionary<int, string>>();
                 if (temp.TryGetValue("actorsGongFas", out s))
                 {
-                    ModDate.actorsGongFas = JsonConvert.DeserializeObject<Dictionary<int, SortedDictionary<int, int[]>>>(s);
-                    if (ModDate.actorsGongFas == null)
-                        ModDate.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
-                    foreach(var actorGongFa in ModDate.actorsGongFas)
+                    ModData.Instance.actorsGongFas = JsonConvert.DeserializeObject<Dictionary<int, SortedDictionary<int, int[]>>>(s);
+                    if (ModData.Instance.actorsGongFas == null)
+                        ModData.Instance.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
+                    foreach(var actorGongFa in ModData.Instance.actorsGongFas)
                     {
                         if(DateFile.instance.actorGongFas.ContainsKey(actorGongFa.Key))
                         {
@@ -305,56 +309,51 @@ namespace RobTomb
                     }
                 }
                 else
-                    ModDate.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
+                    ModData.Instance.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
             }
             else
                 DateFile.instance.modDate.Add("RobTomb", new Dictionary<string, string>());
         }
     }
 
-    [HarmonyPatch(typeof(ArchiveSystem.GameData.DefaultData), "StartSerializingActorsData")]
-    public class ArchiveSystem_GameData_DefaultData_StartSerializingActorsData_Patch
+    [HarmonyPatch(typeof(ArchiveSystem.SaveGame), "StartSavingData")]
+    public class RobTomb_ArchiveSystem_SaveGame_StartSavingDate
     {
-        public static void Prefix(ref Dictionary<int, Dictionary<int, string>> actorsData)
+        public static void Prefix()
         {
             if (!Main.enabled)
                 return;
-            Main.Logger.Log("开始转移盗墓笔记存档数据");
-            ModDate.actorsDate = new Dictionary<int, Dictionary<int, string>>();
-            foreach(var actordate in actorsData)
+            Main.Logger.Log("开始转移盗墓笔记旧版本存档数据");
+            List<int> actorsIDs = new List<int>(GameData.Characters.GetAllCharIds());
+            foreach(var actorID in actorsIDs)
             {
-                foreach(var key in ModDate.actorsDateKeys)
+                foreach(var key in RobTomb_LoadData.actorsDateKeys)
                 {
                     string date;
-                    if(actordate.Value.TryGetValue(key,out date))
+                    
+                    if(GameData.Characters.HasCharProperty(actorID,key))
                     {
-                        Main.Logger.Log("["+actordate.Key +"]"+"["+key+"]"+":"+date);
-                        if(ModDate.actorsDate.ContainsKey(actordate.Key))
-                            ModDate.actorsDate[actordate.Key][key] = date;
-                        else
-                        {
-                            ModDate.actorsDate.Add(actordate.Key, new Dictionary<int, string>());
-                            ModDate.actorsDate[actordate.Key][key] = date;
-                        }
-                        actordate.Value.Remove(key);
-                        Main.Logger.Log($"{actordate.Value.ContainsKey(key)}");
+                        date = GameData.Characters.GetCharProperty(actorID, key);
+                        Main.Logger.Log("["+actorID +"]"+"["+key+"]"+":"+date);
+                        ModData.Instance.SetActorData(actorID, key, date);
+                        GameData.Characters.RemoveCharProperty(actorID, key);
                     }
                 }
             }
-            ModDate.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
+            ModData.Instance.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
             foreach (var actorgongfa in DateFile.instance.actorGongFas)
             {
-                foreach (var key in ModDate.actorsGongFasKeys)
+                foreach (var key in RobTomb_LoadData.actorsGongFasKeys)
                 {
                     int[] date;
                     if (actorgongfa.Value.TryGetValue(key, out date))
                     {
-                        if (ModDate.actorsGongFas.ContainsKey(actorgongfa.Key))
-                            ModDate.actorsGongFas[actorgongfa.Key][key] = date;
+                        if (ModData.Instance.actorsGongFas.ContainsKey(actorgongfa.Key))
+                            ModData.Instance.actorsGongFas[actorgongfa.Key][key] = date;
                         else
                         {
-                            ModDate.actorsGongFas.Add(actorgongfa.Key, new SortedDictionary<int, int[]>());
-                            ModDate.actorsGongFas[actorgongfa.Key][key] = date;
+                            ModData.Instance.actorsGongFas.Add(actorgongfa.Key, new SortedDictionary<int, int[]>());
+                            ModData.Instance.actorsGongFas[actorgongfa.Key][key] = date;
                         }
                         actorgongfa.Value.Remove(key);
                     }
@@ -362,14 +361,9 @@ namespace RobTomb
             }
             if (!DateFile.instance.modDate.ContainsKey("RobTomb"))
                 DateFile.instance.modDate.Add("RobTomb", new Dictionary<string, string>());
-            DateFile.instance.modDate["RobTomb"]["actorsDate"] = JsonConvert.SerializeObject(ModDate.actorsDate);
-            DateFile.instance.modDate["RobTomb"]["actorsGongFas"] = JsonConvert.SerializeObject(ModDate.actorsGongFas);
+            DateFile.instance.modDate["RobTomb"]["actorsDate"] = JsonConvert.SerializeObject(ModData.Instance.actorsDate);
+            DateFile.instance.modDate["RobTomb"]["actorsGongFas"] = JsonConvert.SerializeObject(ModData.Instance.actorsGongFas);
             Main.Logger.Log("转移完毕");
-        }
-
-        public static void Postfix()
-        {
-            LoadDate_Patch.Postfix();
         }
     }
 }

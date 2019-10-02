@@ -49,7 +49,7 @@ namespace WeaponCostFix
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
             if (settings.autoCheckUpdate)
-                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
+                RobTomb.AutoUpdate.CheckUpdate(modEntry);
             return true;
         }
 
@@ -61,7 +61,7 @@ namespace WeaponCostFix
 
         static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            AutoUpdate.AutoUpdate.OnGUI(modEntry,ref settings.autoCheckUpdate);
+            RobTomb.AutoUpdate.OnGUI(modEntry,ref settings.autoCheckUpdate);
         }
 
         static void OnSaveGUI(UnityModManager.ModEntry modEntry)

@@ -50,7 +50,7 @@ namespace BearmanDie
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
             if (settings.autoCheckUpdate)
-                AutoUpdate.AutoUpdate.CheckUpdate(modEntry);
+                RobTomb.AutoUpdate.CheckUpdate(modEntry);
             return true;
         }
 
@@ -183,7 +183,7 @@ namespace BearmanDie
                 "DateFile.instance.GangActorLevelUp(人物ID,目标门派ID,目标门派地位)            改变某人门派及地位(1-9，1最高)\n" +
                 "...懒得写了，看需求再加\n");
 
-            AutoUpdate.AutoUpdate.OnGUI(modEntry, ref settings.autoCheckUpdate);
+            RobTomb.AutoUpdate.OnGUI(modEntry, ref settings.autoCheckUpdate);
         }
 
 

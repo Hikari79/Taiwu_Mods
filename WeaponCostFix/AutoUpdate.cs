@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 using System.IO;
 using Harmony12;
 
-namespace AutoUpdate
+namespace RobTomb
 {
     public class AutoUpdate
     {

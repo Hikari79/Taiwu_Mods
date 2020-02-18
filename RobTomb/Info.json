@@ -2,7 +2,7 @@
   "Id": "RobTomb",
   "DisplayName": "盗墓笔记",
   "Author": "qweraaaaa",
-  "Version": "2.1.2",
+  "Version": "2.1.3",
   "AssemblyName": "RobTomb.dll",
   "EntryMethod": "RobTomb.Main.Load",
   "HomePage":"https://ngabbs.com/read.php?tid=15777630"

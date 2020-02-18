@@ -1,0 +1,8 @@
+{
+  "Id": "WanHuaShiSiJian",
+  "DisplayName": "万化十四剑，无我亦无彼",
+  "Author": "qweraaaaa",
+  "Version": "1.0.0",
+  "AssemblyName": "WanHuaShiSiJian.dll",
+  "EntryMethod": "WanHuaShiSiJian.Main.Load"
+}

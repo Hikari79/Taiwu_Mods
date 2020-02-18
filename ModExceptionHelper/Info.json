@@ -1,0 +1,8 @@
+{
+  "Id": "@ModExceptionHelper",
+  "DisplayName": "mod异常助手",
+  "Author": "qweraaaaa",
+  "Version": "1.0.3",
+  "AssemblyName": "ModExceptionHelper.dll",
+  "EntryMethod": "ModExceptionHelper.Main.Load"
+}

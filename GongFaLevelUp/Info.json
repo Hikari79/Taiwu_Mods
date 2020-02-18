@@ -1,0 +1,8 @@
+{
+  "Id": "GongFaLevelUp",
+  "DisplayName": "功法等级提升",
+  "Author": "qweraaaaa",
+  "Version": "1.0.0",
+  "AssemblyName": "GongFaLevelUp.dll",
+  "EntryMethod": "GongFaLevelUp.Main.Load"
+}

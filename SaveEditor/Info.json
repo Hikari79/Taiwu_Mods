@@ -1,0 +1,8 @@
+﻿{
+  "Id": "SaveEditor",
+  "DisplayName": "存档编辑器",
+  "Author": "qweraaaaa",
+  "Version": "1.0.0",
+  "AssemblyName": "SaveEditor.dll",
+  "EntryMethod": "SaveEditor.Main.Load"
+}

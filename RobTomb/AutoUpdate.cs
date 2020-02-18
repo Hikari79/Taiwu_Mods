@@ -110,7 +110,7 @@ namespace RobTomb
             {
                 if (GUILayout.Button("更新"))
                 {
-                    if (isPathCorrect())
+                    if (IsPathCorrect())
                     {
                         DateFile.instance.StartCoroutine(Update(modEntry, Instance.downloadUrl));
                     }
@@ -125,7 +125,7 @@ namespace RobTomb
         }
 
 
-        private bool isPathCorrect()
+        private bool IsPathCorrect()
         {
             if(Directory.Exists(Path.Combine(Environment.CurrentDirectory, "UnityModManager", "The Scroll Of Taiwu")))
             {

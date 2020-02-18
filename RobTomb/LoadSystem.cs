@@ -20,10 +20,16 @@ namespace RobTomb
         };
         public static Dictionary<string,Dictionary<string,int[]>> fixOtherData=new Dictionary<string, Dictionary<string, int[]>>()
         {
-            {"EnemyTeam_Date",new Dictionary<string, int[]>{{"Event_Date",new int[]{101,102,103 } } } },
-            {"PresetActor_Date",new Dictionary<string, int[]>{{ "Item_Date",new int[] {201,301,302,303,304,305,306,307,308,309,310,311,312 } },
-                                                                                                    { "GongFa_Date",new int[]{996} }
-                                                                                                 }
+            {
+                "EnemyTeam_Date",new Dictionary<string, int[]>{{"Event_Date",new int[]{101,102,103 } } } 
+            },
+            {
+                "PresetActor_Date",
+                new Dictionary<string, int[]>
+                {
+                    { "Item_Date",new int[] {201,301,302,303,304,305,306,307,308,309,310,311,312 } },
+                    { "GongFa_Date",new int[]{996} }
+                 }
             },
             {"Event_Date",new Dictionary<string, int[]>{{"EnemyTeam_Date",new int[] {8} }} }
         };
@@ -156,7 +162,7 @@ namespace RobTomb
             {
                 dateList.Add(key, _newDateList[key]);
             }
-            //建立名字与数据的zi'字典
+            //建立名字与数据的字典
             RobTomb_LoadData.nameToData.Add(dateName, dateList);
 
             Main.Logger.Log("加载" + dateName + "成功");             
@@ -222,7 +228,7 @@ namespace RobTomb
                     Main.Logger.Log($"处理{name}完成");
                 }
                 Main.Logger.Log("处理所有数据完成");
-
+                
                 Dictionary<int, string> gongfa = new Dictionary<int, string>(DateFile.instance.gongFaDate[20408]);
                 gongfa[0] = "三华聚顶·极";
                 gongfa[2] = "9";
@@ -244,9 +250,8 @@ namespace RobTomb
                 gongfa[104] = "5779";
                 gongfa[50073] = "0";
                 DateFile.instance.gongFaDate.Add(20409, gongfa);
-                DateFile.instance.gongFaFPowerDate.Add(5779, new Dictionary<int, string> { { 0, "逆·三华聚顶·极" }, { 1, "20007" }, { 2, "0" }, { 3, "4" }, { 4, "100" }, { 5, "0" }, { 6, "0" }, { 7, "0" }, { 8, "0" }, { 97, "精气合一" }, { 99, "受到伤害时用内外伤共同分担所受伤害" }, { 98, "" } });
-                DateFile.instance.gongFaFPowerDate.Add(779, new Dictionary<int, string> { { 0, "正·三华聚顶·极" }, { 1, "20007" }, { 2, "0" }, { 3, "4" }, { 4, "100" }, { 5, "0" }, { 6, "0" }, { 7, "0" }, { 8, "0" }, { 97, "神形合一" }, { 99, "战斗时可同时提升提气架势" }, { 98, "" } });
-
+                //DateFile.instance.gongFaFPowerDate.Add(5779, new Dictionary<int, string> { { 0, "逆·三华聚顶·极" }, { 1, "20007" }, { 2, "0" }, { 3, "4" }, { 4, "100" }, { 5, "0" }, { 6, "0" }, { 7, "0" }, { 8, "0" }, { 97, "精气合一" }, { 99, "受到伤害时用内外伤共同分担所受伤害" }, { 98, "" } });
+                //DateFile.instance.gongFaFPowerDate.Add(779, new Dictionary<int, string> { { 0, "正·三华聚顶·极" }, { 1, "20007" }, { 2, "0" }, { 3, "4" }, { 4, "100" }, { 5, "0" }, { 6, "0" }, { 7, "0" }, { 8, "0" }, { 97, "神形合一" }, { 99, "战斗时可同时提升提气架势" }, { 98, "" } });
 
             }
             catch (System.Exception e)
@@ -271,12 +276,10 @@ namespace RobTomb
     public class LoadDate_Patch
     {
         public static void Postfix()
-        {            
-            Dictionary<string, string> temp;
-            if (DateFile.instance.modDate.TryGetValue("RobTomb", out temp))
+        {
+            if (DateFile.instance.modDate.TryGetValue("RobTomb", out Dictionary<string, string> temp))
             {
-                string s;
-                if (temp.TryGetValue("actorsDate", out s))
+                if (temp.TryGetValue("actorsDate", out string s))
                 {
                     ModData.Instance.actorsDate = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<int, string>>>(s);
                     if (ModData.Instance.actorsDate == null)
@@ -299,9 +302,9 @@ namespace RobTomb
                     ModData.Instance.actorsGongFas = JsonConvert.DeserializeObject<Dictionary<int, SortedDictionary<int, int[]>>>(s);
                     if (ModData.Instance.actorsGongFas == null)
                         ModData.Instance.actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
-                    foreach(var actorGongFa in ModData.Instance.actorsGongFas)
+                    foreach (var actorGongFa in ModData.Instance.actorsGongFas)
                     {
-                        if(DateFile.instance.actorGongFas.ContainsKey(actorGongFa.Key))
+                        if (DateFile.instance.actorGongFas.ContainsKey(actorGongFa.Key))
                         {
                             foreach (var kv in actorGongFa.Value)
                                 DateFile.instance.actorGongFas[actorGongFa.Key][kv.Key] = kv.Value;

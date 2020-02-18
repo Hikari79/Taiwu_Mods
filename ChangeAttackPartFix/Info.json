@@ -1,0 +1,8 @@
+{
+  "Id": "ChangeAttackPartFix",
+  "DisplayName": "变招修复",
+  "Author": "qweraaaaa",
+  "Version": "1.0.0",
+  "AssemblyName": "ChangeAttackPartFix.dll",
+  "EntryMethod": "ChangeAttackPartFix.Main.Load"
+}

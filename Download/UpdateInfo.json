@@ -1,7 +1,7 @@
 [
   {
     "modName": "RobTomb",
-    "latestVersion": "2.1.3",
+    "latestVersion": "2.1.4",
     "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.4.zip",
     "updateInfo":"V2.1.4\n·修复因特效ID冲突导致《三华聚顶·极》特效错乱的bug\n·修复了《三华聚顶·极》正逆连特效均已失效的错误\n·重写了部分加载数据的代码"
   },

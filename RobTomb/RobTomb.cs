@@ -14,7 +14,10 @@ using UnityEngine.Networking;
 using AI;
 using System.Diagnostics;
 using GameData;
+using LoadSystem;
 using Random = UnityEngine.Random;
+using static LoadSystem.BaseData;
+using v2;
 
 namespace RobTomb
 {
@@ -35,78 +38,7 @@ namespace RobTomb
         }
     }
 
-    public class ModData
-    {
-        private static ModData _instance;
-        public static ModData Instance
-        {
-            get
-            {
-                if (_instance == null)
-                    _instance = new ModData();
-                return _instance;
-            }
-            set
-            {
-                _instance = value;
-            }
-        }
-        public ModData()
-        {
-            actorsDate = new Dictionary<int, Dictionary<int, string>>();
-            actorsGongFas = new Dictionary<int, SortedDictionary<int, int[]>>();
-        }
-        public Dictionary<int, Dictionary<int, string>> actorsDate;
-        public Dictionary<int, SortedDictionary<int, int[]>> actorsGongFas;
-
-        public string GetActorData(int actorID, int index)
-        {
-            if (actorsDate.TryGetValue(actorID, out Dictionary<int, string> dic))
-            {
-                if (dic.TryGetValue(index, out string result))
-                {
-                    return result;
-                }
-            }
-            throw new Exception($"盗墓笔记获取mod人物数据出错，actorID={actorID},key={index},请将此信息反馈给mod作者");
-        }
-        public bool TryGetActorData(int actorID, int index, out string result)
-        {
-            if (actorsDate.TryGetValue(actorID, out Dictionary<int, string> dic))
-            {
-                if (dic.TryGetValue(index, out string s))
-                {
-                    result = s;
-                    return true;
-                }
-            }
-            result = string.Empty;
-            return false;
-        }
-
-        public void SetActorData(int actorID, int key, string value)
-        {
-            if (actorsDate.TryGetValue(actorID, out Dictionary<int, string> dic))
-            {
-                actorsDate[actorID][key] = value;
-                return;
-            }
-            actorsDate.Add(actorID, new Dictionary<int, string>());
-            actorsDate[actorID][key] = value;
-        }
-
-        public void SetGameActorData(int actorID, int key, string value, bool add)
-        {
-            if (add)
-            {
-                string s = Characters.GetCharProperty(actorID, key);
-                Characters.SetCharProperty(actorID, key, (int.Parse(value) + int.Parse(s)).ToString());
-                return;
-            }
-            Characters.SetCharProperty(actorID, key, value);
-
-        }
-    }
+    
 
 
     public static class Main
@@ -170,21 +102,24 @@ namespace RobTomb
         public static Dictionary<int, int> getItemCache = new Dictionary<int, int>();             //获得物品缓存
         public static int[] getRecourse = { 0, 0, 0, 0, 0, 0 };                                                        //获得资源
         public static int[] getRecourseCache = { 0, 0, 0, 0, 0, 0 };                                              //获得资源缓存
-        public static int baseGongId = 0;                                                                                        //当前地点归属，0：野外，1-15：各大门派，其余：村庄
+        public static int baseGongId = 0;        //当前地点归属，0：野外，1-15：各大门派，其余：村庄
+        private static HarmonyInstance harmony;
+
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
             settings = Settings.Load<Settings>(modEntry);
             Logger = modEntry.Logger;
             string resdir = System.IO.Path.Combine(modEntry.Path, "Data");
             Logger.Log(" resdir :" + resdir);
-            RobTomb_LoadData.resdir = resdir;
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
 
             if (settings.autoCheckUpdate)
                 AutoUpdate.Instance.CheckUpdate(modEntry);
-            var harmony = HarmonyInstance.Create(modEntry.Info.Id);
+            
+            DataManager.Instance.Register(resdir, Logger);
+            harmony = HarmonyInstance.Create(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             return true;
         }
@@ -192,6 +127,7 @@ namespace RobTomb
 
         public static bool OnToggle(UnityModManager.ModEntry modEntry, bool value)
         {
+            DataManager.Instance.OnToggle(value);
             enabled = value;
             return true;
         }
@@ -571,7 +507,7 @@ namespace RobTomb
         public static void NoResistance()
         {
 
-            ui_MessageWindow.Instance.chooseItemEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998014402]);
+            ui_MessageWindow.Instance.chooseItemEvents.Remove(GetNewID(BaseDataType.Event_Date,1998014402));
             if (MessageEventManager.Instance.EventValue[1] == 0)
             {
                 for (int i = 0; i < 6; i++)
@@ -615,7 +551,7 @@ namespace RobTomb
             {
             MessageEventManager.Instance.MainEventData[0],
             MessageEventManager.Instance.MainEventData[1],
-            RobTomb_LoadData.id["Event_Date"][1998003],
+            GetNewID(BaseDataType.Event_Date,1998003),
             MessageEventManager.Instance.MainEventData[3],
             giveItemId,
             changeEvent,
@@ -632,12 +568,12 @@ namespace RobTomb
         public static void RobTomb2()
         {
             int actorId = DateFile.instance.MianActorID();
-            if (!ui_MessageWindow.Instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
-                ui_MessageWindow.Instance.chooseActorEvents.Add(RobTomb_LoadData.id["Event_Date"][1998001]);
+            if (!ui_MessageWindow.Instance.chooseActorEvents.Contains(GetNewID(BaseDataType.Event_Date,1998001)))
+                ui_MessageWindow.Instance.chooseActorEvents.Add(GetNewID(BaseDataType.Event_Date,1998001));
             DateFile.instance.SetEvent(new int[]
             { 0,
              -1,
-            RobTomb_LoadData.id["Event_Date"][19981],
+            GetNewID(BaseDataType.Event_Date,19981),
              0
              }, true);
         }
@@ -666,7 +602,7 @@ namespace RobTomb
                     {
                         Characters.SetCharProperty(actorId, gongfazizhi, (int.Parse(Characters.GetCharProperty(actorId, gongfazizhi)) + 20).ToString());
                         TipsWindow.instance.SetTips(0, new string[] { "（太吾对应的资质上升了……）" }, 200);
-                        ModData.Instance.SetActorData(dieActorId, 79, "0");
+                        DataManager.Instance.modData.SetActorData(dieActorId, 79, "0");
                         Main.EndToEvent(199801613);
                         return;
                     }
@@ -691,7 +627,7 @@ namespace RobTomb
                 DateFile.instance.ChangeActorGongFa(actorId, gongFaId, 25, rand, badlevel, false);
                 DateFile.instance.ChangeMianQi(actorId, 100 * int.Parse(DateFile.instance.gongFaDate[gongFaId][2]) * badlevel, 5);
                 if (badlevel != 0) TipsWindow.instance.SetTips(0, new string[] { "你渐渐有了些异样的体悟......" }, 200);
-                ModData.Instance.SetActorData(dieActorId, 79, "0");
+                DataManager.Instance.modData.SetActorData(dieActorId, 79, "0");
                 EndToEvent(199801611);
             }
         }
@@ -718,7 +654,7 @@ namespace RobTomb
                 {
                     Characters.SetCharProperty(actorId, 501 + jiyi, (int.Parse(Characters.GetCharProperty(actorId, 501 + jiyi)) + 20).ToString());
                     TipsWindow.instance.SetTips(0, new string[] { "（太吾对应的资质上升了……）" }, 200);
-                    ModData.Instance.SetActorData(dieActorId, 79, "0");
+                    DataManager.Instance.modData.SetActorData(dieActorId, 79, "0");
                     EndToEvent(199801713);
                     return;
                 }
@@ -732,7 +668,7 @@ namespace RobTomb
                     }
                 }
                 DateFile.instance.ChangeMianSkill(gongFaId, 25, rand, false);
-                ModData.Instance.SetActorData(dieActorId, 79, "0");
+                DataManager.Instance.modData.SetActorData(dieActorId, 79, "0");
                 EndToEvent(199801711);
             }
         }
@@ -743,7 +679,7 @@ namespace RobTomb
         /// <param name="eventId"></param>
         public static void EndToEvent(int eventId)
         {
-            MessageEventManager.Instance.MainEventData[2] = RobTomb_LoadData.id["Event_Date"][eventId];
+            MessageEventManager.Instance.MainEventData[2] = GetNewID(BaseDataType.Event_Date,eventId);
             MessageEventManager.Instance.EventValue = new List<int>();
         }
 
@@ -961,7 +897,7 @@ namespace RobTomb
         /// </summary>
         public static void BattleAgainstZoobie()
         {
-            MessageEventManager.Instance.MakeEventBattel(RobTomb_LoadData.id["EnemyTeam_Date"][2000], 0);
+            MessageEventManager.Instance.MakeEventBattel(GetNewID(BaseDataType.EnemyTeam_Date,2000), 0);
             //StartBattle.instance.ShowStartBattleWindow();
         }
 
@@ -1043,9 +979,9 @@ namespace RobTomb
         /// </summary>
         public static void RobTomb()
         {
-            if (ui_MessageWindow.Instance.chooseActorEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998001]))
+            if (ui_MessageWindow.Instance.chooseActorEvents.Contains(GetNewID(BaseDataType.Event_Date,1998001)))
             {
-                ui_MessageWindow.Instance.chooseActorEvents.Remove(RobTomb_LoadData.id["Event_Date"][1998001]);
+                ui_MessageWindow.Instance.chooseActorEvents.Remove(GetNewID(BaseDataType.Event_Date,1998001));
             }
             int partId = WorldMapSystem.instance.choosePartId;
             int placeId = WorldMapSystem.instance.choosePlaceId;
@@ -1147,13 +1083,13 @@ namespace RobTomb
                     TipsWindow.instance.SetTips(0, new string[] { text }, 200);
                 //判定是否被挖过秘籍
                 bool hasgongfa = true;
-                if (ModData.Instance.TryGetActorData(dieActorId, 79, out string num))
+                if (DataManager.Instance.modData.TryGetActorData(dieActorId, 79, out string num))
                 {
                     if (int.Parse(num) != 1) hasgongfa = false;
                 }
                 else
                 {
-                    ModData.Instance.SetActorData(dieActorId, 79, "1");
+                    DataManager.Instance.modData.SetActorData(dieActorId, 79, "1");
                 }
                 //古冢遗刻
                 if (UnityEngine.Random.Range(0, 100) < 70 + actorResources[0] && Main.dieActorId % 5 == 0 && hasgongfa && level >= 7 && !hasWaived)
@@ -1164,7 +1100,7 @@ namespace RobTomb
                         {
                             if (UnityEngine.Random.Range(0, 100) < 20 + actorResources[6])
                             {
-                                gongFaId = 20409;
+                                gongFaId = GetNewID(BaseDataType.GongFa_Date,20409);
                                 EndToEvent(1998016);
                                 return;
                             }
@@ -1210,11 +1146,11 @@ namespace RobTomb
                 }
                 hasWaived = false;
                 //挖到一个粽子
-                if (UnityEngine.Random.Range(0, 100) < 5 || int.Parse(ModData.Instance.GetActorData(dieActorId, 79)) == 2)
+                if (UnityEngine.Random.Range(0, 100) < 5 || int.Parse(DataManager.Instance.modData.GetActorData(dieActorId, 79)) == 2)
                 {
-                    MessageEventManager.Instance.MainEventData[1] = RobTomb_LoadData.id["PresetActor_Date"][2000];
+                    MessageEventManager.Instance.MainEventData[1] = GetNewID(BaseDataType.PresetActor_Date,2000);
                     Main.Logger.Log(MessageEventManager.Instance.MainEventData[1].ToString());
-                    ModData.Instance.SetActorData(dieActorId, 79, "2");
+                    DataManager.Instance.modData.SetActorData(dieActorId, 79, "2");
                     EndToEvent(1998023);
                     return;
                 }
@@ -1487,7 +1423,7 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (Main.settings.daomu && ui_MessageWindow.Instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998001])
+            else if (Main.settings.daomu && ui_MessageWindow.Instance.massageItemTyp == GetNewID(BaseDataType.Event_Date,1998001))
             {
                 for (int i = 0; i < ui_MessageWindow.Instance.actorHolder.childCount; i++)
                 {
@@ -1509,7 +1445,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                if (ModData.Instance.TryGetActorData(id, 79, out string s))
+                                if (DataManager.Instance.modData.TryGetActorData(id, 79, out string s))
                                 {
                                     dieActors.Add(id);
                                 }
@@ -1520,7 +1456,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                if (!ModData.Instance.TryGetActorData(id, 79, out string s))
+                                if (!DataManager.Instance.modData.TryGetActorData(id, 79, out string s))
                                 {
                                     dieActors.Add(id);
                                 }
@@ -1531,7 +1467,7 @@ namespace RobTomb
                         {
                             foreach (int id in list)
                             {
-                                if (ModData.Instance.TryGetActorData(id, 79, out string s))
+                                if (DataManager.Instance.modData.TryGetActorData(id, 79, out string s))
                                 {
                                     if (int.Parse(s) == 2)
                                         dieActors.Add(id);
@@ -1601,7 +1537,7 @@ namespace RobTomb
             }
             else
             {
-                if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][19981])
+                if (MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,19981))
                 {
                     for (int i = 0; i < ui_MessageWindow.Instance.actorHolder.childCount; i++)
                     {
@@ -1630,7 +1566,7 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (ui_MessageWindow.Instance.massageItemTyp == RobTomb_LoadData.id["Event_Date"][1998014402])
+            else if (ui_MessageWindow.Instance.massageItemTyp == GetNewID(BaseDataType.Event_Date,1998014402))
             {
                 for (int i = 0; i < ui_MessageWindow.Instance.itemHolder.childCount; i++)
                 {
@@ -1689,7 +1625,7 @@ namespace RobTomb
             }
             else
             {
-                if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801440])
+                if (MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,199801440))
                 {
                     Main.safeitemId = ActorMenu.choseItemId;
                     ui_MessageWindow.Instance.CloseItemsWindow();
@@ -1761,8 +1697,8 @@ namespace RobTomb
                             }
                         case 199805:
                             {
-                                if (!ui_MessageWindow.Instance.chooseItemEvents.Contains(RobTomb_LoadData.id["Event_Date"][1998014402]))
-                                    ui_MessageWindow.Instance.chooseItemEvents.Add(RobTomb_LoadData.id["Event_Date"][1998014402]);
+                                if (!ui_MessageWindow.Instance.chooseItemEvents.Contains(GetNewID(BaseDataType.Event_Date,1998014402)))
+                                    ui_MessageWindow.Instance.chooseItemEvents.Add(GetNewID(BaseDataType.Event_Date,1998014402));
                                 if (Main.hasKill)
                                     DateFile.instance.SetActorFameList(actorId, 108, 1);
                                 return false;
@@ -1848,7 +1784,7 @@ namespace RobTomb
             {
                 return;
             }
-            if (RobTomb_LoadData.id["Event_Date"].Values.Contains(MessageEventManager.Instance.MainEventData[2]))
+            if (BaseData.GetNewIDs(BaseDataType.Event_Date).Contains(MessageEventManager.Instance.MainEventData[2]))
             {
                 try
                 {
@@ -1859,7 +1795,7 @@ namespace RobTomb
                     __result = __result.Replace("PLACE", DateFile.instance.GetGangDate(Main.baseGongId, 0));
                     __result = __result.Replace("FAME", DateFile.instance.GetActorFameText(DateFile.instance.mianActorId));
                     __result = __result.Replace("XING", DateFile.instance.actorSurnameDate[int.Parse(DateFile.instance.GetActorDate(DateFile.instance.mianActorId, 29, false))][0]);
-                    if (MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][1998017] || MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801711] || MessageEventManager.Instance.MainEventData[2] == RobTomb_LoadData.id["Event_Date"][199801713])
+                    if (MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,1998017) || MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,199801711) || MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,199801713))
                         __result = __result.Replace("JIYI", DateFile.instance.skillDate[Main.gongFaId][0]);
                     else
                         __result = __result.Replace("GONGFA", DateFile.instance.gongFaDate[Main.gongFaId][0]);
@@ -1885,7 +1821,7 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (eventId == RobTomb_LoadData.id["Event_Date"][1998014402])
+            else if (eventId == GetNewID(BaseDataType.Event_Date,1998014402))
             {
                 if (Main.getItem.Count > 0)
                 {
@@ -1910,7 +1846,7 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (baseActorId == RobTomb_LoadData.id["PresetActor_Date"][2000])
+            else if (baseActorId == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 int num = temporaryId;
                 int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(Main.dieActorId, 20, false)));
@@ -2014,7 +1950,7 @@ namespace RobTomb
                     Characters.SetCharProperty(num, 61 + i, (int.Parse(DateFile.instance.presetActorDate[baseActorId][61 + i]) * zoobielevel).ToString());
                 }
                 DateFile.instance.MakeNewActorGongFa(num, true);
-                int item = RobTomb_LoadData.id["Item_Date"][20000];
+                int item = GetNewID(BaseDataType.Item_Date,20000);
                 Characters.SetCharProperty(num, 201, (item + Mathf.Clamp(zoobielevel - 1, 1, 7)).ToString() + "&" + ((20 - zoobielevel) / 2).ToString());
                 DateFile.instance.MakeNewActorItem(num);
 
@@ -2073,7 +2009,7 @@ namespace RobTomb
             {
                 return true;
             }
-            else if (DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false) == RobTomb_LoadData.id["PresetActor_Date"][2000].ToString())
+            else if (DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false) == GetNewID(BaseDataType.PresetActor_Date,2000).ToString())
             {
                 if (range > 60)
                 {
@@ -2087,7 +2023,7 @@ namespace RobTomb
                             return true;
                         }
                     }
-                    BattleSystem.instance.ShowBattleState(RobTomb_LoadData.id["GongFaOtherFPower_Date"][20000], isActor);
+                    BattleSystem.instance.ShowBattleState(GetNewID(BaseDataType.GongFaOtherFPower_Date,20000), isActor);
                 }
             }
             return true;
@@ -2106,7 +2042,7 @@ namespace RobTomb
             {
                 return;
             }
-            if (isActor == true && int.Parse(DateFile.instance.GetActorDate(defActorId, 997, false)) == RobTomb_LoadData.id["PresetActor_Date"][2000])
+            if (isActor == true && int.Parse(DateFile.instance.GetActorDate(defActorId, 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 if (!Main.bixieWeapon.Contains(int.Parse(DateFile.instance.GetItemDate(weaponId, 999, true))))
                     return;
@@ -2121,7 +2057,7 @@ namespace RobTomb
                 }
                 else
                     __result = __result - level * 10;
-                BattleSystem.instance.ShowBattleState(RobTomb_LoadData.id["GongFaOtherFPower_Date"][19999], isActor);
+                BattleSystem.instance.ShowBattleState(GetNewID(BaseDataType.GongFaOtherFPower_Date,19999), isActor);
                 return;
             }
         }
@@ -2139,7 +2075,7 @@ namespace RobTomb
             {
                 return;
             }
-            else if (int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == RobTomb_LoadData.id["PresetActor_Date"][2000])
+            else if (int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 bool flag = ___battleGo && ___actorNeedUseGongFa == 0 && BattleSystem.instance.actorUseGongFaId == 0 && ___actorDoOtherTyp == 0 && ___actorDoingOtherTyp == 0;
                 BattleSystem.instance.battlerRunButton.interactable = (flag && BattleSystem.instance.battleRange >= 60);
@@ -2160,7 +2096,7 @@ namespace RobTomb
             {
                 return;
             }
-            else if (!isActor && int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == RobTomb_LoadData.id["PresetActor_Date"][2000])
+            else if (!isActor && int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 if (___AI_MoveToDefRange != -1)
                 {
@@ -2206,7 +2142,7 @@ namespace RobTomb
                 {
                  '&'
                 });
-                if (int.Parse(array[0]) == RobTomb_LoadData.id["Event_Date"][1998025]) //恶战胜利逃走被暴露
+                if (int.Parse(array[0]) == GetNewID(BaseDataType.Event_Date,1998025)) //恶战胜利逃走被暴露
                     Main.baolu = true;
                 DateFile.instance.ResetBattleDate();
                 AudioManager.instance.UpdatePlaceBGM(DateFile.instance.mianPartId, DateFile.instance.mianPlaceId);
@@ -2238,32 +2174,37 @@ namespace RobTomb
 
         }
     }
-    /*
+    
     [HarmonyPatch(typeof(BattleSystem), "AddBattleInjury")]
     public class RobTomb_AddBattleInjury_Patch
     {
-        public static bool flag = true;
-        public static bool Prefix(bool isActor, int actorId, int injuryId, int injuryPower)
+        public static bool Prefix(ref List<int> __result,bool isActor, int actorId, int attackerId, int injuryId, int injuryPower, bool realDamage, bool sendEvent)
         {
             if (!Main.enabled)
-                return true;
+                return true;          
+            bool flag;
+            StackTrace s = new StackTrace();
+            flag = s.GetFrame(2).GetMethod().Name != "Prefix";
             if (flag)
             {
-                if (BattleSystem.instance.GetGongFaFEffect(779, isActor, actorId, 0))
+                List<int> list = new List<int>{injuryId,injuryPower,actorId};
+                list = SubSystems.SpecialEffectSystem.ModifyData(DataUid.ActorDataId(186), list, attackerId);
+                list = SubSystems.SpecialEffectSystem.ModifyData(DataUid.ActorDataId(168), list, actorId);
+                injuryId = list[0];
+                injuryPower = list[1];
+                int effectID = GetNewID(BaseDataType.GongFaOtherFPower_Date, 20002);
+                if (BattleSystem.instance.GetGongFaFEffect(effectID, isActor, actorId, 0))
                 {
-                    MethodInfo addbattleinjury = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "AddBattleInjury");
-                    BattleSystem.instance.ShowBattleState(779, isActor);
+                    BattleSystem.instance.ShowBattleState(effectID, isActor);
                     int injurytyp = int.Parse(DateFile.instance.injuryDate[injuryId][1]) > 0 ? 0 : 1;
                     int hp = DateFile.instance.MaxHp(actorId);
                     int sp = DateFile.instance.MaxSp(actorId);
-                    BattleSystem.instance.ShowBattleState(779, isActor);
                     float ssp = (float)sp / (hp + sp);
-                    flag = false;
                     int hppower = (int)(injuryPower * (1 - ssp));
                     int sppower = (int)(injuryPower * ssp);
-                    addbattleinjury.Invoke(BattleSystem.instance, new object[] { isActor, actorId, injurytyp == 0 ? injuryId : (injuryId - 3), hppower });
-                    addbattleinjury.Invoke(BattleSystem.instance, new object[] { isActor, actorId, injurytyp == 0 ? (injuryId + 3) : injuryId, sppower });
-                    flag = true;
+                    BattleSystem.instance.AddBattleInjury(isActor, actorId,attackerId, injurytyp == 0 ? injuryId : (injuryId - 3), hppower,realDamage,sendEvent);
+                    BattleSystem.instance.AddBattleInjury(isActor, actorId,attackerId, injurytyp == 0 ? (injuryId + 3) : injuryId, sppower,realDamage,sendEvent);
+                    __result = list;
                     return false;
                 }
                 return true;
@@ -2271,48 +2212,45 @@ namespace RobTomb
             return true;
         }
     }
-    */
-    /*
     [HarmonyPatch(typeof(BattleSystem), "UpdateBattlerMagicAndStrength")]
     public class RobTomb_UpdateBattlerMagicAndStrength_Patch
     {
-        public static MethodInfo UpdateMagic = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "UpdateMagic");
-        public static MethodInfo UpdateStrength = AccessTools.Method(AccessTools.TypeByName("BattleSystem"), "UpdateStrength");
         public static bool Prefix(bool isActor, int power, float ___actorMagic, float ___actorStrength, float ___enemyMagic, float ___enemyStrength)
         {
             if (!Main.enabled)
                 return true;
             int actorId = BattleSystem.instance.ActorId(isActor, false);
-            if (BattleSystem.instance.GetGongFaFEffect(5779, isActor, actorId, 0))
+            int effectID = GetNewID(BaseDataType.GongFaOtherFPower_Date, 20001);
+            if (BattleSystem.instance.GetGongFaFEffect(effectID, isActor, actorId, 0))
             {
                 if (isActor)
                 {
-                    bool flag = ___actorMagic < 20000f;
+                    bool flag = ___actorMagic < 30000f;
                     if (flag)
                     {
                         float value = (float)(BattleVaule.instance.GetMagicSpeed(isActor, actorId, true, 1) * power / 100) * Time.timeScale;
-                        UpdateMagic.Invoke(BattleSystem.instance, new object[] { isActor, value });
+                        BattleSystem.instance.UpdateMagic(isActor, value);
                     }
-                    bool flag2 = ___actorStrength < 20000f;
+                    bool flag2 = ___actorStrength < 30000f;
                     if (flag2)
                     {
                         float value = (float)(BattleVaule.instance.GetMagicSpeed(isActor, actorId, true, 1) * power / 100) * Time.timeScale;
-                        UpdateStrength.Invoke(BattleSystem.instance, new object[] { isActor, value });
+                        BattleSystem.instance.UpdateStrength(isActor, value);
                     }
                 }
                 else
                 {
-                    bool flag = ___enemyMagic < 20000f;
+                    bool flag = ___enemyMagic < 30000f;
                     if (flag)
                     {
                         float value = (float)(BattleVaule.instance.GetMagicSpeed(isActor, actorId, true, 1) * power / 100) * Time.timeScale;
-                        UpdateMagic.Invoke(BattleSystem.instance, new object[] { isActor, value });
+                        BattleSystem.instance.UpdateMagic(isActor, value);
                     }
-                    bool flag2 = ___enemyStrength < 20000f;
+                    bool flag2 = ___enemyStrength < 30000f;
                     if (flag2)
                     {
                         float value = (float)(BattleVaule.instance.GetMagicSpeed(isActor, actorId, true, 1) * power / 100) * Time.timeScale;
-                        UpdateStrength.Invoke(BattleSystem.instance, new object[] { isActor, value });
+                        BattleSystem.instance.UpdateStrength(isActor, value);
                     }
                 }
                 return false;
@@ -2320,25 +2258,26 @@ namespace RobTomb
             else return true;
         }
     }
-    */
-    /*
+    
+   
     [HarmonyPatch(typeof(BattleSystem), "ShowBaseGongFaState")]
     public class RobTomb_ShowBaseGongFaState_Patch
     {
         public static void Postfix(bool isActor, ref float __result, bool showState = true)
         {
             int actorId = BattleSystem.instance.ActorId(isActor, false);
-            if (BattleSystem.instance.GetGongFaFEffect(5779, isActor, actorId, 0))
+            int effectID = GetNewID(BaseDataType.GongFaOtherFPower_Date, 20001);
+            if (BattleSystem.instance.GetGongFaFEffect(effectID, isActor, actorId, 0))
             {
                 if (showState)
                 {
-                    BattleSystem.instance.StartCoroutine(Traverse.Create(BattleSystem.instance).Method("WaitShowBattleState", new object[] { 5779, isActor, __result }).GetValue<IEnumerator>());
+                    BattleSystem.instance.StartCoroutine(Traverse.Create(BattleSystem.instance).Method("WaitShowBattleState", new object[] { effectID, isActor, __result }).GetValue<IEnumerator>());
                 }
                 __result += 0.5f;
             }
         }
     }
-    */
+    
 
     public class UIFix
     {

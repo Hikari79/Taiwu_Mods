@@ -36,9 +36,12 @@ namespace ModExceptionHelper
 
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
+            TimeTestHelper.Start();
             settings = Settings.Load<Settings>(modEntry);
+
             Logger = modEntry.Logger;
             Main.modEntry = modEntry;
+
             Application.logMessageReceivedThreaded += new Application.LogCallback(ExceptionHelper.Instance.Handler);
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
@@ -61,6 +64,7 @@ namespace ModExceptionHelper
         {
             settings.Save(modEntry);
         }
+
     }
 
     public class ExceptionHelper
@@ -80,12 +84,34 @@ namespace ModExceptionHelper
 
         private ExceptionHelper()
         {
-            AllModsTypesNamesCache = new Dictionary<UnityModManager.ModInfo, List<string>>();
+            modsTypesNamesCache = GetAllModsTypesNames();
         }
 
-        private readonly Dictionary<UnityModManager.ModInfo, List<string>> AllModsTypesNamesCache;
+        private readonly Dictionary<UnityModManager.ModInfo, List<string>> modsTypesNamesCache;
 
-        public void AddErrorMod(Dictionary<UnityModManager.ModInfo,List<string>> obj,UnityModManager.ModInfo modInfo,string message)
+        public Dictionary<UnityModManager.ModInfo, List<string>> GetAllModsTypesNames()
+        {
+            Dictionary<UnityModManager.ModInfo, List<string>> result = new Dictionary<UnityModManager.ModInfo, List<string>>();
+            foreach (var mod in UnityModManager.modEntries)
+            {
+                Assembly assembly = mod.Assembly;
+                if (assembly == null)
+                {
+                    string text = System.IO.Path.Combine(mod.Path, mod.Info.AssemblyName);
+                    assembly = Assembly.LoadFile(text);
+                }
+                if (assembly == null)
+                {
+                    Main.Logger.Log($"无法加载MOD\"{mod.Info.DisplayName}\"的程序集");
+                    continue;
+                }
+                List<string> typesNames = new List<string>();
+                assembly.GetTypes().Do(x => typesNames.Add(x.FullName));
+                result.Add(mod.Info, typesNames);
+            }
+            return result;
+        }
+        public void SetErrorMod(Dictionary<UnityModManager.ModInfo,List<string>> obj,UnityModManager.ModInfo modInfo,string message)
         {
             if(obj.TryGetValue(modInfo,out List<string> value))
             {
@@ -98,52 +124,22 @@ namespace ModExceptionHelper
             }
         }
 
-        public List<string> GetModStr(UnityModManager.ModEntry modEntry)
-        {
-            if (Instance.AllModsTypesNamesCache.TryGetValue(modEntry.Info, out List<string> result))
-            {
-                return result;
-            }
-            else
-            {
-                result = new List<string>();
-                Assembly assembly = modEntry.Assembly;
-                /*
-                if (assembly == null)
-                {
-                    string text = System.IO.Path.Combine(modEntry.Path, modEntry.Info.AssemblyName);
-                    assembly = Assembly.LoadFile(text);
-                }
-                */
-                if (assembly == null)
-                {
-                    return result;
-                }
-                assembly.GetTypes().Do(x => result.Add(x.FullName));
-                return result;
-            }
-        }
-        public bool TryGetErrorMods(string logString,string stackString,out Dictionary<UnityModManager.ModInfo, List<string>> result)
+        public bool GetErrorMods(string logString,string stackString,out Dictionary<UnityModManager.ModInfo, List<string>> result)
         {
             Dictionary<UnityModManager.ModInfo, List<string>> errorMods = new Dictionary<UnityModManager.ModInfo, List<string>>();
             try
             {
-                List<string> modStr = new List<string>();
-                foreach (var mod in UnityModManager.modEntries)
+                foreach (var mod in modsTypesNamesCache)
                 {
-                    modStr.Clear();
-                    modStr = GetModStr(mod);
-                    if (modStr.Count <= 0)
-                        break;
-                    foreach(var name in modStr)
+                    foreach(var name in mod.Value)
                     {
                         if (logString.Contains(name))
                         {
-                            ExceptionHelper.Instance.AddErrorMod(errorMods, mod.Info, name);
+                            ExceptionHelper.Instance.SetErrorMod(errorMods, mod.Key, name);
                         }
                         if (stackString.Contains(name))
                         {
-                            ExceptionHelper.Instance.AddErrorMod(errorMods, mod.Info, name);
+                            ExceptionHelper.Instance.SetErrorMod(errorMods, mod.Key, name);
                         }
                     }
                 }
@@ -180,7 +176,7 @@ namespace ModExceptionHelper
                         if (patch.index == patchIndex)
                         {
                             UnityModManager.ModInfo modInfo = UnityModManager.FindMod(patch.owner).Info;
-                            ExceptionHelper.Instance.AddErrorMod(errorMods, modInfo, matchString + ".Prefix()");
+                            ExceptionHelper.Instance.SetErrorMod(errorMods, modInfo, matchString + ".Prefix()");
                         }
                     }
                     foreach (var patch in info.Postfixes)
@@ -188,7 +184,7 @@ namespace ModExceptionHelper
                         if (patch.index == patchIndex)
                         {
                             UnityModManager.ModInfo modInfo = UnityModManager.FindMod(patch.owner).Info;
-                            ExceptionHelper.Instance.AddErrorMod(errorMods, modInfo, matchString + ".Postfix()");
+                            ExceptionHelper.Instance.SetErrorMod(errorMods, modInfo, matchString + ".Postfix()");
                         }
                     }
                 }
@@ -208,8 +204,9 @@ namespace ModExceptionHelper
         {
             if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
             {
-                TimeCountHelper.Start();
-                if (TryGetErrorMods(logString, stackTrace, out Dictionary<UnityModManager.ModInfo, List<string>> errorMods))
+                Main.Logger.Log(TimeTestHelper.Stop().ToString() + "ms");
+                TimeTestHelper.Start();
+                if (GetErrorMods(logString, stackTrace, out Dictionary<UnityModManager.ModInfo, List<string>> errorMods))
                 {
                     if (errorMods.Count > 0)
                     {
@@ -229,7 +226,7 @@ namespace ModExceptionHelper
                             {
                                 stringBuilder.AppendLine(s);
                             }
-                            stringBuilder.AppendLine("建议将完整报错信息提交给MOD作者等待修复并且酌情卸载此MOD");
+                            stringBuilder.AppendLine("建议将完整报错信息提交给MOD作者等待修复或者暂时卸载此MOD");
                             num++;
                         }
                         Main.Logger.Log(stringBuilder.ToString());
@@ -248,20 +245,19 @@ namespace ModExceptionHelper
                         foreach (var s in kv.Value)
                             stringBuilder.AppendLine(s);
                     }
-                    stringBuilder.AppendLine("请将上述错误信息提交给MOD异常助手的作者以修复此问题（贴吧/NGA均可）");
+                    stringBuilder.AppendLine("请将上述错误信息提交给MOD异常助手的作者以修复本MOD（贴吧/NGA均可）");
                     Main.Logger.Log(stringBuilder.ToString());
                 }
-                Main.Logger.Log(TimeCountHelper.Stop().ToString() + "ms"); 
+                Main.Logger.Log(TimeTestHelper.Stop().ToString() + "ms");
             }
         }
     }
-
-    public static class TimeCountHelper
+    public static class TimeTestHelper
     {
         private static Stopwatch stopwatch;
         public static void Start()
         {
-            if(stopwatch==null)
+            if (stopwatch == null)
             {
                 stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -274,7 +270,7 @@ namespace ModExceptionHelper
         public static long Stop()
         {
             stopwatch.Stop();
-            return stopwatch.ElapsedMilliseconds;
+            return stopwatch.ElapsedTicks;
         }
     }
 }

@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using System;
 using GameData;
+using System.Diagnostics;
+using System.Linq;
 
 namespace LoadSystem
 {
@@ -150,10 +152,12 @@ namespace LoadSystem
         /// 存储mod数据
         /// </summary>
         [HarmonyPatch(typeof(ArchiveSystem.SaveGame), "StartSavingData")]
-        public class RobTomb_ArchiveSystem_SaveGame_StartSavingDate
+        public class SaveModData_ArchiveSystem_SaveGame_StartSavingDate
         {
+            public static bool start =false;
             public static void Prefix()
             {
+                start = true;
                 if (!DataManager.Instance.enabled)
                     return;
                 FixOldSave();
@@ -169,7 +173,8 @@ namespace LoadSystem
             private static void FixOldSave()
             {
                 var data = DataManager.Instance.modData;
-                DataManager.Instance.logger.Log("开始转移盗墓笔记旧版本存档数据（如果存在）");
+                DataManager.Instance.logger.Log("开始转移盗墓笔记存档数据（如果存在）");
+                int num = 0;
                 List<int> actorsIDs = new List<int>(GameData.Characters.GetAllCharIds());
                 foreach (var actorID in actorsIDs)
                 {
@@ -182,6 +187,7 @@ namespace LoadSystem
                             //DataManager.Instance.logger.Log("[" + actorID + "]" + "[" + key + "]" + ":" + date);
                             data.SetActorData(actorID, key, date);
                             Characters.RemoveCharProperty(actorID, key);
+                            num++;
                         }
                     }
                 }
@@ -200,8 +206,26 @@ namespace LoadSystem
                                 data.actorsGongFas[actorgongfa.Key][key] = date;
                             }
                             actorgongfa.Value.Remove(key);
+                            num++;
                         }
                     }
+                }
+                DataManager.Instance.logger.Log($"转移完毕，共转移{num}条数据。");
+            }
+        }
+        [HarmonyPatch(typeof(ArchiveSystem.SaveGame), "DoSavingAgent")]
+        public class ReLoadModData_ArchiveSystem_SaveGame_DoSavingAgent
+        {
+            public static void Postfix()
+            {
+                if (!DataManager.Instance.enabled)
+                    return;
+                if(SaveModData_ArchiveSystem_SaveGame_StartSavingDate.start)
+                {
+                    SaveModData_ArchiveSystem_SaveGame_StartSavingDate.start = false;
+                    DataManager.Instance.logger.Log("start reload moddata");
+                    LoadModData_DateFile_LoadDate_Patch.Postfix();
+                    DataManager.Instance.logger.Log("reload over");
                 }
             }
         }

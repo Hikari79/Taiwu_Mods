@@ -676,7 +676,7 @@ namespace RobTomb
         /// <summary>
         /// 事件结束转到xx事件
         /// </summary>
-        /// <param name="eventId"></param>
+        /// <param name="eventId">txt配置文件中的原始ID</param>
         public static void EndToEvent(int eventId)
         {
             MessageEventManager.Instance.MainEventData[2] = GetNewID(BaseDataType.Event_Date,eventId);
@@ -725,22 +725,42 @@ namespace RobTomb
 
         public static void RobTombsuccessfully()
         {
-            if (MessageEventManager.Instance.EventValue[1] == 1)
+            switch(MessageEventManager.Instance.EventValue[1])
             {
-
-                if (getItemCache.Count > 0)
-                {
-                    List<int> itemId = new List<int>(getItemCache.Keys);
-                    for (int i = 0; i < itemId.Count; i++)
+                case 1:             //跳过清点
                     {
-                        getItem.Add(itemId[i], getItemCache[itemId[i]]);
-                        getItemCache.Remove(itemId[i]);
+                        if (getItemCache.Count > 0)
+                        {
+                            List<int> itemId = new List<int>(getItemCache.Keys);
+                            for (int i = 0; i < itemId.Count; i++)
+                            {
+                                if (getItem.ContainsKey(itemId[i]))
+                                    getItem[itemId[i]] += getItemCache[itemId[i]];
+                                else
+                                    getItem.Add(itemId[i], getItemCache[itemId[i]]);
+                                getItemCache.Remove(itemId[i]);
+                            }
+                        }
+                        EndToEvent(1998022);
+                        return;
                     }
-                }
-                EndToEvent(1998022);
-                return;
+                case 2:
+                    {
+                        int actorID = DateFile.instance.mianActorId;
+                        int itemID = MessageEventManager.Instance.MainEventData[3];
+                        DateFile.instance.LoseItem(actorID, itemID, DateFile.instance.GetItemNumber(actorID, itemID), true);
+                        getItem.Remove(itemID);
+                        break;
+                    }
+                case 3:
+                    {
+                        int actorID = DateFile.instance.mianActorId;
+                        int itemID = MessageEventManager.Instance.MainEventData[3];
+                        DateFile.instance.ChangeTwoActorItem(actorID, Main.dieActorId, itemID, DateFile.instance.GetItemNumber(actorID, itemID));
+                        getItem.Remove(itemID);
+                        break;
+                    }
             }
-
             if (getRecourseCache.Max() != 0)
             {
                 for (int i = 0; i < 6; i++)
@@ -749,7 +769,6 @@ namespace RobTomb
                     getRecourseCache[i] = 0;
                 }
                 EndToEvent(1998019);
-
                 return;
             }
 
@@ -757,10 +776,12 @@ namespace RobTomb
             {
                 KeyValuePair<int, int> item = getItemCache.Last();
                 getItemCache.Remove(item.Key);
-                getItem.Add(item.Key, item.Value);
+                if (getItem.ContainsKey(item.Key))
+                    getItem[item.Key] += item.Value;
+                else
+                    getItem.Add(item.Key, item.Value);
                 MessageEventManager.Instance.MainEventData[3] = item.Key;
                 EndToEvent(1998020);
-
                 return;
             }
             EndToEvent(1998022);
@@ -1068,14 +1089,14 @@ namespace RobTomb
                     int typ = UnityEngine.Random.Range(0, 5);
                     DateFile.instance.ChangePoison(actorId, typ, (UnityEngine.Random.Range(0, 100) > 10 * level ? UnityEngine.Random.Range(50, level * 50) : UnityEngine.Random.Range(100, level * 100)) * (100 - actorResources[4]) / 100);
                     if (text != "") text += "\n";
-                    text = text + "在墓中吸入不明的气体，NAME中毒了......";
+                    text += "在墓中吸入不明的气体，NAME中毒了......";
                 }
 
                 if (UnityEngine.Random.Range(0, 100) < 30 - actorResources[4] / 2 + (isTired ? 20 : 0))
                 {
                     DateFile.instance.MakeRandInjury(actorId, (UnityEngine.Random.Range(0, 100) >= 75) ? 10 : 0, (UnityEngine.Random.Range(0, 100) > 10 * level ? UnityEngine.Random.Range(50, level * 50) : UnityEngine.Random.Range(200, level * 200)) * (100 - actorResources[4]) / 100);
                     if (text != "") text += "\n";
-                    text = text + "在墓中触发了未知的机关，NAME受伤了......";
+                    text += "在墓中触发了未知的机关，NAME受伤了......";
                 }
 
                 text = text.Replace("NAME", DateFile.instance.GetActorName(actorId));
@@ -1245,7 +1266,12 @@ namespace RobTomb
                                 }
                             }
                         }
-                        getItemCache.Add(itemIds[i], DateFile.instance.actorItemsDate[Main.dieActorId][itemIds[i]]);
+                        int itemID = itemIds[i];
+                        int ItemNum = DateFile.instance.GetItemNumber(Main.dieActorId, itemID);
+                        if (getItemCache.ContainsKey(itemID))
+                            getItemCache[itemID] += ItemNum;
+                        else
+                            getItemCache.Add(itemID, ItemNum);
                         PeopleLifeAI.instance.AISetMassage(13, actorId, partId, placeId, new int[]
                         {
                         0,

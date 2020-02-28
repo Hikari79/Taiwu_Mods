@@ -272,7 +272,7 @@ namespace LoadSystem
                 if (idConvert[typeStr].TryGetValue(oldID, out int value))
                     return value;
             }
-            throw new Exception($"[RobTomb]无法找到相应的对象,类型:{typeStr},旧序号:{oldID}\n请将此信息反馈给作者.");
+            throw new Exception($"盗墓笔记无法找到相应的对象,类型:{typeStr},旧序号:{oldID}\n请将此信息反馈给作者.");
             
 
         }
@@ -332,8 +332,7 @@ namespace LoadSystem
                 Dictionary<int, int> oldToNew = new Dictionary<int, int>();
                 for (int i = 1; i < array.Length; i++)
                 {
-                    int id;
-                    if (int.TryParse(array[i].Split(',')[0], out id))
+                    if (int.TryParse(array[i].Split(',')[0], out int id))
                         oldToNew.Add(id, num + i);
                 }
                 BaseData.idConvert.Add(dateName, oldToNew);

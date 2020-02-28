@@ -1,9 +1,9 @@
 [
   {
     "modName": "RobTomb",
-    "latestVersion": "2.1.5",
-    "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.5.zip",
-    "updateInfo":"V2.1.5\n·修复了过月存档时未重新读取mod数据的bug"
+    "latestVersion": "2.1.6",
+    "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.6.zip",
+    "updateInfo":"V2.1.6\n·修复了极少数情况下福缘深厚获得材料与盗得物品相同时红字报错的bug\n·添加了清点盗墓所得时两个额外的选项\n	1、丢弃（丢弃后物品将会销毁，即无法再次获得）\n		2、放回原地（物品将被放回墓中，下次搜索时有可能再次被发现）"
   },
     {
         "modName": "WeaponCostFix",

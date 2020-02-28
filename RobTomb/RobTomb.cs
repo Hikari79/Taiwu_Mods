@@ -27,10 +27,10 @@ namespace RobTomb
         public bool daomu;
         public int paixu;
         public int search;
-        public string amount;
+        public string amount = "0";
         public bool noPoisonItem;
         public bool autoCheckUpdate;
-        public string ummPath;
+        public string ummPath = string.Empty;
         public bool debug;
         public override void Save(UnityModManager.ModEntry modEntry)
         {

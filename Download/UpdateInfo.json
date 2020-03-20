@@ -1,9 +1,9 @@
 [
   {
     "modName": "RobTomb",
-    "latestVersion": "2.1.7",
-    "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.7.zip",
-    "updateInfo":"V2.1.7\n·修复了Event_Date.txt未为UTF-8编码格式导致的乱码"
+    "latestVersion": "2.1.8",
+    "downLoadUrl": "https://github.com/Charlotte-poi/Taiwu_Mods/raw/master/Download/RobTombV2.1.8.zip",
+    "updateInfo":"V2.1.8\n·适配游戏0.2.7.10"
   },
     {
         "modName": "WeaponCostFix",

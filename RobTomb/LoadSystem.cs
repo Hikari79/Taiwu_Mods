@@ -8,6 +8,7 @@ using System;
 using GameData;
 using System.Diagnostics;
 using System.Linq;
+using UnityModManagerNet;
 
 namespace LoadSystem
 {
@@ -30,26 +31,47 @@ namespace LoadSystem
         }
         public ModData modData;   //供mod调用的mod数据，DataManager.Instance.modDate
         public bool enabled;
-        public UnityModManagerNet.UnityModManager.ModEntry.ModLogger logger;
+        public UnityModManager.ModEntry mod;
+        public UnityModManager.ModEntry.ModLogger logger;
 
         public void OnToggle(bool value)
         {
             enabled = value;
         }
-        public void Register(string path, UnityModManagerNet.UnityModManager.ModEntry.ModLogger modLogger)
+        public void Register(string path,UnityModManager.ModEntry mod)
         {
             if (Directory.Exists(path))
                 BaseData.resdir = path;
             else
                 BaseData.resdir = "";
-            logger = modLogger;
+            this.mod = mod;
+            logger = this.mod.Logger;
         }
+
+        public int GetGameActorData(int actorID,int index,bool applyBonus = true)
+        {
+            try
+            {
+                string s = DateFile.instance.GetActorDate(actorID, index, applyBonus);
+                if (int.TryParse(s, out int value))
+                {
+                    return value;
+                }
+                throw new Exception($"[{mod.Info.DisplayName}]获取游戏人物数据出错,ID = {actorID},index = {index},applyBonus = {applyBonus}");
+            }
+            catch(Exception e)
+            {
+                throw e;
+            }
+            
+        }
+
     }
     public class ModData
     {
         public enum DataType
         {       
-            actorDate=1,actorsGongFas=2
+            actorDate,actorsGongFas
         }
         public Dictionary<int, Dictionary<int, string>> actorsDate;                              //人物数据 
         public Dictionary<int, SortedDictionary<int, int[]>> actorsGongFas;                //功法数据
@@ -62,7 +84,7 @@ namespace LoadSystem
                     return result;
                 }
             }
-            throw new Exception($"盗墓笔记获取mod人物数据出错，actorID={actorID},key={index},请将此信息反馈给mod作者");
+            throw new Exception($"[{DataManager.Instance.mod.Info.DisplayName}]获取MOD人物数据出错，actorID={actorID},key={index},请将此信息反馈给MOD作者");
         }
         public bool TryGetActorData(int actorID, int index, out string result)
         {
@@ -213,6 +235,7 @@ namespace LoadSystem
                 DataManager.Instance.logger.Log($"转移完毕，共转移{num}条数据。");
             }
         }
+
         [HarmonyPatch(typeof(ArchiveSystem.SaveGame), "DoSavingAgent")]
         public class ReLoadModData_ArchiveSystem_SaveGame_DoSavingAgent
         {
@@ -488,7 +511,7 @@ namespace LoadSystem
                         actorsGongFasKeys[i] = GetNewID(BaseDataType.GongFa_Date, actorsGongFasKeys[i]);
                     }
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     DataManager.Instance.logger.Log("[error]FixOtherData_ArchiveSystem_GameData_ReadonlyData_Load_Patch.Postfix():" + e.Message);
                     throw e;

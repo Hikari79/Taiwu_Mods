@@ -18,6 +18,7 @@ using LoadSystem;
 using Random = UnityEngine.Random;
 using static LoadSystem.BaseData;
 using v2;
+using System.IO;
 
 namespace RobTomb
 {
@@ -118,7 +119,7 @@ namespace RobTomb
             if (settings.autoCheckUpdate)
                 AutoUpdate.Instance.CheckUpdate(modEntry);
             
-            DataManager.Instance.Register(resdir, Logger);
+            DataManager.Instance.Register(resdir, modEntry);
             harmony = HarmonyInstance.Create(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
             return true;
@@ -176,14 +177,14 @@ namespace RobTomb
 
         {
 
-            if (Math.Abs(int.Parse(DateFile.instance.GetActorDate(a, 20, false))) < Math.Abs(int.Parse(DateFile.instance.GetActorDate(b, 20, false))))
+            if (Math.Abs(DataManager.Instance.GetGameActorData(a, 20, false)) < Math.Abs(DataManager.Instance.GetGameActorData(b, 20, false)))
 
             {
                 return -1;
 
             }
 
-            else if (Math.Abs(int.Parse(DateFile.instance.GetActorDate(a, 20, false))) > Math.Abs(int.Parse(DateFile.instance.GetActorDate(b, 20, false))))
+            else if (Math.Abs(DataManager.Instance.GetGameActorData(a, 20, false)) > Math.Abs(DataManager.Instance.GetGameActorData(b, 20, false)))
 
             {
 
@@ -197,14 +198,14 @@ namespace RobTomb
 
         {
 
-            if (Math.Abs(int.Parse(DateFile.instance.GetActorDate(a, 20, false))) < Math.Abs(int.Parse(DateFile.instance.GetActorDate(b, 20, false))))
+            if (Math.Abs(DataManager.Instance.GetGameActorData(a, 20, false)) < Math.Abs(DataManager.Instance.GetGameActorData(b, 20, false)))
 
             {
                 return 1;
 
             }
 
-            else if (Math.Abs(int.Parse(DateFile.instance.GetActorDate(a, 20, false))) > Math.Abs(int.Parse(DateFile.instance.GetActorDate(b, 20, false))))
+            else if (Math.Abs(DataManager.Instance.GetGameActorData(a, 20, false)) > Math.Abs(DataManager.Instance.GetGameActorData(b, 20, false)))
 
             {
 
@@ -304,7 +305,7 @@ namespace RobTomb
                             Main.Logger.Log("成功添加门派人物");
                             for (int i = 0; i < list.Count; i++)
                             {
-                                int favor = int.Parse(DateFile.instance.GetActorDate(list[i], 3, false));
+                                int favor = DataManager.Instance.GetGameActorData(list[i], 3, false);
                                 if (favor != -1)
                                     DateFile.instance.ChangeFavor(list[i], -2000, false, false);
                             }
@@ -324,9 +325,9 @@ namespace RobTomb
                             }
                             for (int i = 0; i < list.Count; i++)
                             {
-                                if (int.Parse(DateFile.instance.GetActorDate(list[i], 47, false)) > 0)
+                                if (DataManager.Instance.GetGameActorData(list[i], 47, false) > 0)
                                 {
-                                    int favor = int.Parse(DateFile.instance.GetActorDate(list[i], 3, false));
+                                    int favor = DataManager.Instance.GetGameActorData(list[i], 3, false);
                                     if (favor != -1)
                                         DateFile.instance.ChangeFavor(list[i], -12000, false, true);
                                 }
@@ -445,8 +446,8 @@ namespace RobTomb
             Main.haveOtherWay = true;
             int id = MessageEventManager.Instance.MainEventData[1];
             int goodness = DateFile.instance.GetActorGoodness(id);
-            int level = Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
-            int level2 = Math.Abs(int.Parse(DateFile.instance.GetActorDate(id, 20, false)));
+            int level = Math.Abs(DataManager.Instance.GetGameActorData(dieActorId, 20, false));
+            int level2 = Math.Abs(DataManager.Instance.GetGameActorData(id, 20, false));
             int x = 50;
             switch ((10 - level2) / 2)
             {
@@ -484,10 +485,10 @@ namespace RobTomb
             Main.haveOtherWay = true;
             int actorId = DateFile.instance.mianActorId;
             int fame = DateFile.instance.GetActorFame(actorId);
-            int charm = int.Parse(DateFile.instance.GetActorDate(actorId, 15, true));
-            int level = 10 - Mathf.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
+            int charm = DataManager.Instance.GetGameActorData(actorId, 15, true);
+            int level = 10 - Mathf.Abs(DataManager.Instance.GetGameActorData(dieActorId, 20, false));
             int jilv = 0;
-            if (int.Parse(DateFile.instance.GetActorDate(actorId, 14, false)) == 2) jilv += 20;
+            if (DataManager.Instance.GetGameActorData(actorId, 14, false) == 2) jilv += 20;
             jilv += charm / 30;
             jilv += fame / 2;
             jilv -= level * 5;
@@ -856,7 +857,7 @@ namespace RobTomb
             int actorId = DateFile.instance.mianActorId;
             int jilv = 33;
             int actorSpeed = BattleVaule.instance.GetMoveSpeed(true, actorId, false);
-            int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
+            int level = 10 - Math.Abs(DataManager.Instance.GetGameActorData(dieActorId, 20, false));
             if (actorSpeed <= 150)
             {
                 jilv = actorSpeed / 5;
@@ -954,8 +955,8 @@ namespace RobTomb
             int actorId = DateFile.instance.mianActorId;
             int[] actorResources = DateFile.instance.GetActorResources(actorId);
             int jilv = 33;
-            int actorPower = int.Parse(DateFile.instance.GetActorDate(actorId, 993, false));
-            int enemyPower = int.Parse(DateFile.instance.GetActorDate(MessageEventManager.Instance.MainEventData[1], 993, false));
+            int actorPower = DataManager.Instance.GetGameActorData(actorId, 993, false);
+            int enemyPower = DataManager.Instance.GetGameActorData(MessageEventManager.Instance.MainEventData[1], 993, false);
             if (actorPower >= enemyPower) jilv -= 20;
             else jilv += 20;
             jilv += actorResources[5] / 2;
@@ -977,7 +978,7 @@ namespace RobTomb
             int actorId = DateFile.instance.mianActorId;
             int num = MessageEventManager.Instance.MainEventData[1];
             Main.hasKill = true;
-            if (int.Parse(DateFile.instance.GetActorDate(num, 8, false)) == 1)
+            if (DataManager.Instance.GetGameActorData(num, 8, false) == 1)
             {
                 Characters.SetCharProperty(num, 12, "0");
                 PeopleLifeAI.instance.AISetMassage(95, num, DateFile.instance.mianPartId, DateFile.instance.mianPlaceId, null, -1, true);
@@ -1008,7 +1009,7 @@ namespace RobTomb
             int placeId = WorldMapSystem.instance.choosePlaceId;
             int actorId = DateFile.instance.MianActorID();
             int gangId = int.Parse(Characters.GetCharProperty(dieActorId, 19));
-            int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(dieActorId, 20, false)));
+            int level = 10 - Math.Abs(DataManager.Instance.GetGameActorData(dieActorId, 20, false));
             int[] actorResources = DateFile.instance.GetActorResources(actorId);
             int jilv;
             List<int> friends = new List<int>();
@@ -1148,7 +1149,7 @@ namespace RobTomb
                         int zizhi = 0, jiyi = 0;
                         for (int i = 1; i < 17; i++)
                         {
-                            int actorjiyi = int.Parse(DateFile.instance.GetActorDate(dieActorId, 500 + i, false));
+                            int actorjiyi = DataManager.Instance.GetGameActorData(dieActorId, 500 + i, false);
                             if (actorjiyi >= zizhi)
                             {
                                 zizhi = actorjiyi;
@@ -1312,10 +1313,10 @@ namespace RobTomb
                     bool battle = false;
                     int goodness = DateFile.instance.GetActorGoodness(id);
                     int brave = DateFile.instance.GetActorResources(id)[3];
-                    int power = int.Parse(DateFile.instance.GetActorDate(id, 993, false));
+                    int power = DataManager.Instance.GetGameActorData(id, 993, false);
                     if (goodness == 2 || goodness == 4)
                     {
-                        if (power + brave * 100 >= int.Parse(DateFile.instance.GetActorDate(DateFile.instance.mianActorId, 993, false)) && int.Parse(DateFile.instance.GetActorDate(id, 19, false)) != 16)
+                        if (power + brave * 100 >= DataManager.Instance.GetGameActorData(DateFile.instance.mianActorId, 993, false) && DataManager.Instance.GetGameActorData(id, 19, false) != 16)
                         {
                             battle = true;
                         }
@@ -1525,7 +1526,7 @@ namespace RobTomb
                 for (int num10 = 0; num10 < dieActors.Count && (num10 < number || !flag); num10++)
                 {
                     int num11 = dieActors[num10];
-                    int level = Math.Abs(int.Parse(DateFile.instance.GetActorDate(num11, 20, false)));
+                    int level = Math.Abs(DataManager.Instance.GetGameActorData(num11, 20, false));
                     GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(ui_MessageWindow.Instance.actorIcon, Vector3.zero, Quaternion.identity);
                     gameObject.name = "Actor," + num11;
                     gameObject.transform.SetParent(ui_MessageWindow.Instance.actorHolder, false);
@@ -1814,13 +1815,13 @@ namespace RobTomb
             {
                 try
                 {
-                    int gangId = int.Parse(DateFile.instance.GetActorDate(Main.dieActorId, 19, false));
-                    int level = int.Parse(DateFile.instance.GetActorDate(Main.dieActorId, 20, false));
+                    int gangId = DataManager.Instance.GetGameActorData(Main.dieActorId, 19, false);
+                    int level = DataManager.Instance.GetGameActorData(Main.dieActorId, 20, false);
                     __result = __result.Replace("LEVEL", DateFile.instance.presetGangGroupDateValue[DateFile.instance.GetGangValueId(gangId, level)][1001]);
                     __result = __result.Replace("DN", DateFile.instance.GetActorName(Main.dieActorId, false, false));
                     __result = __result.Replace("PLACE", DateFile.instance.GetGangDate(Main.baseGongId, 0));
                     __result = __result.Replace("FAME", DateFile.instance.GetActorFameText(DateFile.instance.mianActorId));
-                    __result = __result.Replace("XING", DateFile.instance.actorSurnameDate[int.Parse(DateFile.instance.GetActorDate(DateFile.instance.mianActorId, 29, false))][0]);
+                    __result = __result.Replace("XING", DateFile.instance.actorSurnameDate[DataManager.Instance.GetGameActorData(DateFile.instance.mianActorId, 29, false)][0]);
                     if (MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,1998017) || MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,199801711) || MessageEventManager.Instance.MainEventData[2] == GetNewID(BaseDataType.Event_Date,199801713))
                         __result = __result.Replace("JIYI", DateFile.instance.skillDate[Main.gongFaId][0]);
                     else
@@ -1875,7 +1876,7 @@ namespace RobTomb
             else if (baseActorId == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 int num = temporaryId;
-                int level = 10 - Math.Abs(int.Parse(DateFile.instance.GetActorDate(Main.dieActorId, 20, false)));
+                int level = 10 - Math.Abs(DataManager.Instance.GetGameActorData(Main.dieActorId, 20, false));
                 int zoobielevel = Mathf.Clamp(level + UnityEngine.Random.Range(-1, 2), 1, 10);
                 MethodInfo DoActorMake = typeof(DateFile).GetMethod("DoActorMake", BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.NonPublic);
                 if (zoobielevel < 10)
@@ -1887,7 +1888,7 @@ namespace RobTomb
                     DoActorMake.Invoke(DateFile.instance, new object[] { baseActorId, num, makeNewFeatures, 0, 0, age, attrValue, skillValue, gongFaValue, resourceValue, baseCharm, null, null, randObbs, 0, 0 });
                 }
 
-                DateFile.instance.MakeActorName(num, int.Parse(DateFile.instance.GetActorDate(num, 29, false)), DateFile.instance.GetActorDate(num, 5, false), true);
+                DateFile.instance.MakeActorName(num, DataManager.Instance.GetGameActorData(num, 29, false), DateFile.instance.GetActorDate(num, 5, false), true);
                 Characters.SetCharProperty(num, 20, Mathf.Clamp(10 - zoobielevel, 1, 9).ToString());
                 Characters.SetCharProperty(num, 8, "3");
                 Characters.SetCharProperty(num, 706, (int.Parse(DateFile.instance.presetActorDate[baseActorId][706]) + 5000 * zoobielevel).ToString());
@@ -2068,7 +2069,7 @@ namespace RobTomb
             {
                 return;
             }
-            if (isActor == true && int.Parse(DateFile.instance.GetActorDate(defActorId, 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
+            if (isActor == true && DataManager.Instance.GetGameActorData(defActorId, 997, false) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 if (!Main.bixieWeapon.Contains(int.Parse(DateFile.instance.GetItemDate(weaponId, 999, true))))
                     return;
@@ -2101,7 +2102,7 @@ namespace RobTomb
             {
                 return;
             }
-            else if (int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
+            else if (DataManager.Instance.GetGameActorData(BattleSystem.instance.ActorId(false, false), 997, false) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 bool flag = ___battleGo && ___actorNeedUseGongFa == 0 && BattleSystem.instance.actorUseGongFaId == 0 && ___actorDoOtherTyp == 0 && ___actorDoingOtherTyp == 0;
                 BattleSystem.instance.battlerRunButton.interactable = (flag && BattleSystem.instance.battleRange >= 60);
@@ -2122,7 +2123,7 @@ namespace RobTomb
             {
                 return;
             }
-            else if (!isActor && int.Parse(DateFile.instance.GetActorDate(BattleSystem.instance.ActorId(false, false), 997, false)) == GetNewID(BaseDataType.PresetActor_Date,2000))
+            else if (!isActor && DataManager.Instance.GetGameActorData(BattleSystem.instance.ActorId(false, false), 997, false) == GetNewID(BaseDataType.PresetActor_Date,2000))
             {
                 if (___AI_MoveToDefRange != -1)
                 {
